@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Weekly Menu · EatsByATX</title>
+<style>
+  :root {
+    --ink: #1f1d1a; --paper: #f7f4ed; --card: #fffdf8; --line: #e4ddcd;
+    --sage: #5c6b54; --sage-deep: #44503e; --clay: #c2683f; --muted: #8a8475;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif; background: var(--paper); color: var(--ink); line-height: 1.5; padding-bottom: 96px; }
+  .wrap { max-width: 540px; margin: 0 auto; }
+  header { padding: 28px 22px 20px; border-bottom: 1px solid var(--line); background: var(--card); }
+  .brand { font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--clay); font-weight: 700; }
+  h1 { font-family: Georgia, "Times New Roman", serif; font-size: 27px; font-weight: 600; margin-top: 8px; letter-spacing: -0.01em; }
+  .meta { color: var(--muted); font-size: 14.5px; margin-top: 6px; }
+  .state-msg { margin: 40px 22px; text-align: center; color: var(--muted); font-size: 15px; line-height: 1.7; }
+  .instruct { margin: 18px 22px 6px; background: #eef0e8; border: 1px solid #d8ddcb; border-radius: 12px; padding: 13px 15px; font-size: 14.5px; color: var(--sage-deep); }
+
+  .dish {
+    margin: 14px 22px 0; background: var(--card);
+    border: 1.5px solid var(--line); border-radius: 14px;
+    padding: 16px; cursor: pointer; user-select: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .dish.sel { border-color: var(--sage); box-shadow: 0 0 0 1.5px var(--sage); }
+  .dish-top { display: flex; gap: 13px; align-items: flex-start; }
+  .box { flex: 0 0 25px; height: 25px; margin-top: 2px; border: 2px solid #bcb6a4; border-radius: 8px; display: grid; place-items: center; transition: background 0.15s, border-color 0.15s; }
+  .box svg { width: 15px; height: 15px; opacity: 0; }
+  .dish.sel .box { background: var(--sage); border-color: var(--sage); }
+  .dish.sel .box svg { opacity: 1; }
+  .dish-title { font-family: Georgia, serif; font-size: 17.5px; font-weight: 600; line-height: 1.35; }
+  .dish-desc { font-size: 14px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+  .note-area { display: none; margin-top: 13px; }
+  .dish.sel .note-area { display: block; }
+  .note-area textarea {
+    width: 100%; min-height: 54px; resize: vertical;
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; font: inherit; font-size: 14px;
+    background: var(--paper); color: var(--ink);
+  }
+  .note-area textarea::placeholder { color: #b3ac9b; }
+
+  .footer-note { margin: 26px 22px 0; font-size: 13px; color: var(--muted); text-align: center; line-height: 1.6; }
+
+  .submitbar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--card); border-top: 1px solid var(--line);
+    padding: 12px 22px calc(12px + env(safe-area-inset-bottom));
+    display: none; z-index: 60;
+  }
+  .submitbar.visible { display: block; }
+  .submitbar .inner { max-width: 540px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+  .count { font-size: 14px; color: var(--muted); flex: 1; font-weight: 600; }
+  .count.ready { color: var(--sage-deep); }
+  .btn { background: var(--clay); color: #fff; border: none; border-radius: 12px; padding: 14px 24px; font-size: 15.5px; font-weight: 700; cursor: pointer; }
+  .btn:disabled { background: #d8cfc0; cursor: default; }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+
+  .thanks { margin: 50px 22px; text-align: center; }
+  .thanks .big { font-family: Georgia, serif; font-size: 24px; font-weight: 600; }
+  .thanks p { color: var(--muted); font-size: 15px; margin-top: 10px; line-height: 1.7; }
+  .editlink { display: inline-block; margin-top: 18px; color: var(--sage-deep); font-weight: 600; font-size: 14.5px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">EatsByATX</div>
+    <h1>Your weekly menu</h1>
+    <div class="meta" id="meta"></div>
+  </header>
+  <div id="content"><div class="state-msg">Loading your menu&hellip;</div></div>
+</div>
+
+<div class="submitbar" id="submitbar">
+  <div class="inner">
+    <div class="count" id="count"></div>
+    <button class="btn" id="submitbtn" disabled>Submit selections</button>
+  </div>
+</div>
+
+<script>
+  var GET_URL  = "https://hook.us2.make.com/tay2tjv1singwv4o9svq6qf1ydwpspqi";
+  var SAVE_URL = "https://hook.us2.make.com/ucaq72jw7ofxkpyvy19455s6cylht5n9";
+
+  var key = new URLSearchParams(location.search).get("key");
+  var state = null; // { clientName, weekLabel, pickCount, status, menu: [{title, desc, selected, note}] }
+
+  var content = document.getElementById("content");
+  var meta = document.getElementById("meta");
+  var submitbar = document.getElementById("submitbar");
+  var countEl = document.getElementById("count");
+  var submitbtn = document.getElementById("submitbtn");
+
+  var CHECK = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function showMessage(html) { content.innerHTML = '<div class="state-msg">' + html + '</div>'; submitbar.classList.remove("visible"); }
+
+  function load() {
+    if (!key) { showMessage("This link is missing its menu code.<br>Please use the exact link we texted you, or reach out and we'll resend it."); return; }
+    fetch(GET_URL + "?key=" + encodeURIComponent(key))
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (data) {
+        if (!data || !data.menu) throw new Error("empty");
+        state = {
+          clientName: data.clientName || "",
+          weekLabel: data.weekLabel || "",
+          pickCount: parseInt(data.pickCount, 10) || 0,
+          status: data.status || "pending",
+          menu: typeof data.menu === "string" ? JSON.parse(data.menu) : data.menu
+        };
+        if (state.status === "submitted") { renderThanks(true); } else { renderMenu(); }
+      })
+      .catch(function () { showMessage("We couldn't load your menu right now.<br>Give it a moment and refresh \u2014 or text us and we'll sort it out."); });
+  }
+
+  function selCount() {
+    var n = 0; state.menu.forEach(function (d) { if (d.selected) n++; });
+    return n;
+  }
+
+  function updateBar() {
+    var n = selCount();
+    var target = state.pickCount;
+    if (target > 0) {
+      countEl.textContent = n + " of " + target + " selected";
+      countEl.classList.toggle("ready", n === target);
+      submitbtn.disabled = (n !== target);
+    } else {
+      countEl.textContent = n + " selected";
+      countEl.classList.toggle("ready", n > 0);
+      submitbtn.disabled = (n === 0);
+    }
+  }
+
+  function renderMenu() {
+    meta.textContent = state.clientName + " \u00B7 " + state.weekLabel;
+    var pickText = state.pickCount > 0 ? "Pick " + state.pickCount + " meals" : "Pick your meals";
+    var html = '';
+    html += '<div class="instruct"><b>' + pickText + '</b> by tapping the dishes you want. Add a note under any dish if there\u2019s something you\u2019d like adjusted or a question for us. Then hit submit \u2014 that\u2019s it.</div>';
+    html += '<div id="dishes"></div>';
+    html += '<div class="footer-note">Questions? Text us anytime \u2014 we\u2019re happy to help.</div>';
+    content.innerHTML = html;
+
+    var dishes = document.getElementById("dishes");
+    state.menu.forEach(function (d) {
+      var card = document.createElement("div");
+      card.className = "dish" + (d.selected ? " sel" : "");
+
+      var top = document.createElement("div");
+      top.className = "dish-top";
+      var box = document.createElement("div"); box.className = "box"; box.innerHTML = CHECK;
+      var txt = document.createElement("div");
+      var t = document.createElement("div"); t.className = "dish-title"; t.textContent = d.title;
+      txt.appendChild(t);
+      if (d.desc) { var ds = document.createElement("div"); ds.className = "dish-desc"; ds.textContent = d.desc; txt.appendChild(ds); }
+      top.appendChild(box); top.appendChild(txt);
+      card.appendChild(top);
+
+      var na = document.createElement("div");
+      na.className = "note-area";
+      var ta = document.createElement("textarea");
+      ta.placeholder = "Any notes or requests for this dish? (optional)";
+      ta.value = d.note || "";
+      ta.addEventListener("input", function () { d.note = ta.value; });
+      ta.addEventListener("click", function (e) { e.stopPropagation(); });
+      na.appendChild(ta);
+      card.appendChild(na);
+
+      card.addEventListener("click", function () {
+        d.selected = !d.selected;
+        card.classList.toggle("sel", d.selected);
+        updateBar();
+      });
+
+      dishes.appendChild(card);
+    });
+
+    submitbar.classList.add("visible");
+    updateBar();
+  }
+
+  function renderThanks(existing) {
+    submitbar.classList.remove("visible");
+    meta.textContent = state.clientName + " \u00B7 " + state.weekLabel;
+    var picks = state.menu.filter(function (d) { return d.selected; });
+    var html = '<div class="thanks">';
+    html += '<div class="big">' + (existing ? "Your selections are in" : "Got it \u2014 thank you!") + '</div>';
+    html += '<p>You picked:<br><b>' + picks.map(function (d) { return d.title.split(" with ")[0]; }).join("<br>") + '</b></p>';
+    html += '<p>We\u2019ll take it from here. Your grocery checklist will be on its way before your service day.</p>';
+    html += '<span class="editlink" id="editlink">Need to change something? Edit selections</span>';
+    html += '</div>';
+    content.innerHTML = html;
+    document.getElementById("editlink").addEventListener("click", function () {
+      state.status = "pending";
+      renderMenu();
+    });
+  }
+
+  submitbtn.addEventListener("click", function () {
+    submitbtn.disabled = true;
+    submitbtn.textContent = "Submitting\u2026";
+    var body = new URLSearchParams();
+    body.set("key", key);
+    body.set("clientName", state.clientName);
+    body.set("weekLabel", state.weekLabel);
+    body.set("pickCount", String(state.pickCount));
+    body.set("status", "submitted");
+    body.set("menu", JSON.stringify(state.menu));
+    fetch(SAVE_URL, { method: "POST", body: body })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); })
+      .then(function () {
+        state.status = "submitted";
+        submitbtn.textContent = "Submit selections";
+        renderThanks(false);
+      })
+      .catch(function () {
+        submitbtn.disabled = false;
+        submitbtn.textContent = "Try again";
+      });
+  });
+
+  load();
+</script>
+</body>
+</html>
