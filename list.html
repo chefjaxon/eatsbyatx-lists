@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Weekly Grocery List · EatsByATX</title>
+<style>
+  :root {
+    --ink: #1f1d1a;
+    --paper: #f7f4ed;
+    --card: #fffdf8;
+    --line: #e4ddcd;
+    --sage: #5c6b54;
+    --sage-deep: #44503e;
+    --clay: #c2683f;
+    --muted: #8a8475;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.5;
+    padding-bottom: 72px;
+  }
+  .wrap { max-width: 540px; margin: 0 auto; }
+
+  header {
+    padding: 28px 22px 20px;
+    border-bottom: 1px solid var(--line);
+    background: var(--card);
+  }
+  .brand {
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--clay);
+    font-weight: 700;
+  }
+  h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 27px;
+    font-weight: 600;
+    margin-top: 8px;
+    letter-spacing: -0.01em;
+  }
+  .meta { color: var(--muted); font-size: 14.5px; margin-top: 6px; }
+  .instruct {
+    margin: 18px 22px 6px;
+    background: #eef0e8;
+    border: 1px solid #d8ddcb;
+    border-radius: 12px;
+    padding: 13px 15px;
+    font-size: 14.5px;
+    color: var(--sage-deep);
+  }
+  .state-msg {
+    margin: 40px 22px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .progress-bar {
+    margin: 16px 22px 4px;
+    height: 7px;
+    background: #e8e2d4;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0;
+    background: var(--sage);
+    border-radius: 99px;
+    transition: width 0.35s ease;
+  }
+  .progress-label { margin: 7px 22px 0; font-size: 13px; color: var(--muted); }
+
+  .cat { margin: 26px 22px 0; }
+  .cat-head {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    padding-bottom: 9px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 4px;
+  }
+  .cat-head h2 {
+    font-size: 13px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .cat-count { font-size: 12.5px; color: var(--muted); margin-left: auto; }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    user-select: none;
+  }
+  .item:last-child { border-bottom: none; }
+  .box {
+    flex: 0 0 24px;
+    height: 24px;
+    border: 2px solid #bcb6a4;
+    border-radius: 7px;
+    display: grid;
+    place-items: center;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .box svg { width: 15px; height: 15px; opacity: 0; transition: opacity 0.15s; }
+  .item.have .box { background: var(--sage); border-color: var(--sage); }
+  .item.have .box svg { opacity: 1; }
+  .name { font-size: 16px; flex: 1; transition: color 0.15s; }
+  .qty { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .item.have .name { color: var(--muted); text-decoration: line-through; text-decoration-color: #c9c3b2; }
+  .item.have .qty { color: #bcb6a4; }
+
+  .footer-note {
+    margin: 30px 22px 0;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .savebar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--card);
+    border-top: 1px solid var(--line);
+    padding: 12px 22px calc(12px + env(safe-area-inset-bottom));
+    display: none;
+  }
+  .savebar.visible { display: block; }
+  .savebar .inner { max-width: 540px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+  .save-status { font-size: 13.5px; color: var(--sage); flex: 1; display: flex; align-items: center; gap: 7px; }
+  .save-status.err { color: #a04428; }
+  .dot { width: 8px; height: 8px; border-radius: 99px; background: currentColor; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">EatsByATX</div>
+    <h1>Your weekly grocery list</h1>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <div id="content">
+    <div class="state-msg" id="loading">Loading your list&hellip;</div>
+  </div>
+</div>
+
+<div class="savebar" id="savebar">
+  <div class="inner">
+    <div class="save-status" id="savestatus"><span class="dot"></span><span id="savetxt">All changes saved</span></div>
+  </div>
+</div>
+
+<script>
+  var GET_URL  = "https://hook.us2.make.com/3h2ft9tpkjghlvf63u4vrj55cwu0pava";
+  var SAVE_URL = "https://hook.us2.make.com/d9atqksjqpqvu7dijp3kxgbl3hookhdx";
+
+  var key = new URLSearchParams(location.search).get("key");
+  var state = null;   // { clientName, serviceDay, items: [{cat, items:[{name, qty, have}]}] }
+  var dirty = false;
+  var saveTimer = null;
+
+  var content = document.getElementById("content");
+  var meta = document.getElementById("meta");
+  var savebar = document.getElementById("savebar");
+  var savetxt = document.getElementById("savetxt");
+  var savestatus = document.getElementById("savestatus");
+
+  var CHECK = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function showMessage(html) {
+    content.innerHTML = '<div class="state-msg">' + html + '</div>';
+  }
+
+  function load() {
+    if (!key) {
+      showMessage("This link is missing its list code.<br>Please use the exact link we texted you, or reach out and we'll resend it.");
+      return;
+    }
+    fetch(GET_URL + "?key=" + encodeURIComponent(key))
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (data) {
+        if (!data || !data.items) throw new Error("empty");
+        state = {
+          clientName: data.clientName || "",
+          serviceDay: data.serviceDay || "",
+          items: typeof data.items === "string" ? JSON.parse(data.items) : data.items
+        };
+        render();
+      })
+      .catch(function () {
+        showMessage("We couldn't load your list right now.<br>Give it a moment and refresh &mdash; or text us and we'll sort it out.");
+      });
+  }
+
+  function render() {
+    meta.textContent = state.clientName + " \u00B7 Service day: " + state.serviceDay;
+    var html = '';
+    html += '<div class="instruct">Tap anything you <b>already have</b> at home to check it off. Your chef shops only what stays unchecked. Changes save automatically.</div>';
+    html += '<div class="progress-bar"><div class="progress-fill" id="fill"></div></div>';
+    html += '<div class="progress-label" id="plabel"></div>';
+    html += '<div id="list"></div>';
+    html += '<div class="footer-note">Updates save automatically \u00B7 Your chef sees this same list<br>Questions? Text us anytime.</div>';
+    content.innerHTML = html;
+
+    var list = document.getElementById("list");
+    state.items.forEach(function (group, gi) {
+      var sec = document.createElement("div");
+      sec.className = "cat";
+      var head = document.createElement("div");
+      head.className = "cat-head";
+      head.innerHTML = "<h2></h2><span class='cat-count'>" + group.items.length + " items</span>";
+      head.querySelector("h2").textContent = group.cat;
+      sec.appendChild(head);
+      group.items.forEach(function (it, ii) {
+        var row = document.createElement("div");
+        row.className = "item" + (it.have ? " have" : "");
+        var box = document.createElement("div"); box.className = "box"; box.innerHTML = CHECK;
+        var name = document.createElement("div"); name.className = "name"; name.textContent = it.name;
+        var qty = document.createElement("div"); qty.className = "qty"; qty.textContent = it.qty;
+        row.appendChild(box); row.appendChild(name); row.appendChild(qty);
+        row.addEventListener("click", function () {
+          it.have = !it.have;
+          row.classList.toggle("have", it.have);
+          updateProgress();
+          queueSave();
+        });
+        sec.appendChild(row);
+      });
+      list.appendChild(sec);
+    });
+    savebar.classList.add("visible");
+    updateProgress();
+  }
+
+  function counts() {
+    var total = 0, have = 0;
+    state.items.forEach(function (g) {
+      g.items.forEach(function (it) { total++; if (it.have) have++; });
+    });
+    return { total: total, have: have };
+  }
+
+  function updateProgress() {
+    var c = counts();
+    var fill = document.getElementById("fill");
+    var plabel = document.getElementById("plabel");
+    if (fill) fill.style.width = (c.total ? (c.have / c.total * 100) : 0) + "%";
+    if (plabel) plabel.textContent = c.have + " of " + c.total + " marked as already have";
+  }
+
+  function queueSave() {
+    dirty = true;
+    savestatus.classList.remove("err");
+    savetxt.textContent = "Saving\u2026";
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 700);
+  }
+
+  function doSave() {
+    var body = new URLSearchParams();
+    body.set("key", key);
+    body.set("clientName", state.clientName);
+    body.set("serviceDay", state.serviceDay);
+    body.set("items", JSON.stringify(state.items));
+    fetch(SAVE_URL, { method: "POST", body: body })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); })
+      .then(function () {
+        dirty = false;
+        savestatus.classList.remove("err");
+        savetxt.textContent = "All changes saved";
+      })
+      .catch(function () {
+        savestatus.classList.add("err");
+        savetxt.textContent = "Couldn't save \u2014 retrying\u2026";
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(doSave, 3000);
+      });
+  }
+
+  // Periodic refresh so the chef sees client edits without reloading.
+  setInterval(function () {
+    if (dirty || !state) return;
+    fetch(GET_URL + "?key=" + encodeURIComponent(key))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (dirty || !data || !data.items) return;
+        var fresh = typeof data.items === "string" ? JSON.parse(data.items) : data.items;
+        if (JSON.stringify(fresh) !== JSON.stringify(state.items)) {
+          state.items = fresh;
+          render();
+        }
+      })
+      .catch(function () {});
+  }, 30000);
+
+  load();
+</script>
+</body>
+</html>
