@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chef Production Sheet · EatsByATX</title>
+<style>
+  :root {
+    --ink: #1f1d1a;
+    --paper: #f7f4ed;
+    --card: #fffdf8;
+    --line: #e4ddcd;
+    --sage: #5c6b54;
+    --sage-deep: #44503e;
+    --clay: #c2683f;
+    --muted: #8a8475;
+    --alert-bg: #fdf3e4;
+    --alert-line: #e8c89a;
+    --alert-ink: #8a5a1d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.5;
+    padding-bottom: 72px;
+  }
+  .wrap { max-width: 600px; margin: 0 auto; }
+
+  header {
+    padding: 28px 22px 20px;
+    border-bottom: 1px solid var(--line);
+    background: var(--card);
+  }
+  .brand {
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--clay);
+    font-weight: 700;
+  }
+  h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 26px;
+    font-weight: 600;
+    margin-top: 8px;
+    letter-spacing: -0.01em;
+  }
+  .meta { color: var(--muted); font-size: 14.5px; margin-top: 6px; }
+  .state-msg {
+    margin: 40px 22px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .progress-bar {
+    margin: 16px 22px 4px;
+    height: 7px;
+    background: #e8e2d4;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0;
+    background: var(--sage);
+    border-radius: 99px;
+    transition: width 0.35s ease;
+  }
+  .progress-label { margin: 7px 22px 0; font-size: 13px; color: var(--muted); }
+
+  .client-block { margin: 28px 16px 0; }
+  .client-head {
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 12px 12px 0 0;
+    padding: 13px 16px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .meals {
+    border: 1px solid var(--line);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    background: var(--card);
+    overflow: hidden;
+  }
+
+  .meal { border-bottom: 1px solid var(--line); }
+  .meal:last-child { border-bottom: none; }
+  .meal-head {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 15px 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .box {
+    flex: 0 0 26px;
+    height: 26px;
+    border: 2px solid #bcb6a4;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .box svg { width: 16px; height: 16px; opacity: 0; transition: opacity 0.15s; }
+  .meal.done .box { background: var(--sage); border-color: var(--sage); }
+  .meal.done .box svg { opacity: 1; }
+  .meal-title { font-size: 16.5px; font-weight: 600; flex: 1; }
+  .meal.done .meal-title { color: var(--muted); text-decoration: line-through; text-decoration-color: #c9c3b2; }
+  .chev {
+    flex: 0 0 auto;
+    color: var(--muted);
+    transition: transform 0.2s;
+    font-size: 13px;
+  }
+  .meal.open .chev { transform: rotate(180deg); }
+
+  .meal-body { display: none; padding: 0 16px 16px; }
+  .meal.open .meal-body { display: block; }
+
+  .mod {
+    background: var(--alert-bg);
+    border: 1px solid var(--alert-line);
+    border-radius: 10px;
+    padding: 11px 13px;
+    margin-bottom: 12px;
+  }
+  .mod-label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    color: var(--alert-ink);
+    margin-bottom: 5px;
+  }
+  .mod-line {
+    font-size: 14.5px;
+    color: var(--alert-ink);
+    padding: 2px 0;
+  }
+  .mod-line.caps { font-weight: 800; }
+
+  .steps {
+    font-size: 15px;
+    white-space: pre-wrap;
+    color: var(--ink);
+    line-height: 1.65;
+  }
+
+  .footer-note {
+    margin: 30px 22px 0;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .savebar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--card);
+    border-top: 1px solid var(--line);
+    padding: 12px 22px calc(12px + env(safe-area-inset-bottom));
+    display: none;
+  }
+  .savebar.visible { display: block; }
+  .savebar .inner { max-width: 600px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+  .save-status { font-size: 13.5px; color: var(--sage); flex: 1; display: flex; align-items: center; gap: 7px; }
+  .save-status.err { color: #a04428; }
+  .dot { width: 8px; height: 8px; border-radius: 99px; background: currentColor; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">EatsByATX</div>
+    <h1>Chef production sheet</h1>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <div id="content">
+    <div class="state-msg" id="loading">Loading your production sheet&hellip;</div>
+  </div>
+</div>
+
+<div class="savebar" id="savebar">
+  <div class="inner">
+    <div class="save-status" id="savestatus"><span class="dot"></span><span id="savetxt">All changes saved</span></div>
+  </div>
+</div>
+
+<script>
+  var GET_URL  = "https://hook.us2.make.com/mi8bxatsoobuv6s3jsb8jlcjwxfnkzms";
+  var SAVE_URL = "https://hook.us2.make.com/yrfabtq44ucjv8yuc76v63nrupvfr2qh";
+
+  var key = new URLSearchParams(location.search).get("key");
+  var state = null;   // { chefName, serviceDay, sheet: [{client, meals:[{title, mod, body, done}]}] }
+  var dirty = false;
+  var saveTimer = null;
+
+  var content = document.getElementById("content");
+  var meta = document.getElementById("meta");
+  var savebar = document.getElementById("savebar");
+  var savetxt = document.getElementById("savetxt");
+  var savestatus = document.getElementById("savestatus");
+
+  var CHECK = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function showMessage(html) {
+    content.innerHTML = '<div class="state-msg">' + html + '</div>';
+  }
+
+  function load() {
+    if (!key) {
+      showMessage("This link is missing its sheet code.<br>Please use the exact link you were sent.");
+      return;
+    }
+    fetch(GET_URL + "?key=" + encodeURIComponent(key))
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (data) {
+        if (!data || !data.sheet) throw new Error("empty");
+        state = {
+          chefName: data.chefName || "",
+          serviceDay: data.serviceDay || "",
+          sheet: typeof data.sheet === "string" ? JSON.parse(data.sheet) : data.sheet
+        };
+        render();
+      })
+      .catch(function () {
+        showMessage("We couldn't load this sheet right now.<br>Give it a moment and refresh.");
+      });
+  }
+
+  function render() {
+    meta.textContent = state.chefName + " \u00B7 Service day: " + state.serviceDay;
+    var html = '';
+    html += '<div class="progress-bar"><div class="progress-fill" id="fill"></div></div>';
+    html += '<div class="progress-label" id="plabel"></div>';
+    html += '<div id="blocks"></div>';
+    html += '<div class="footer-note">Tap a meal name to open its recipe \u00B7 Tap the box when it\u2019s cooked and packed<br>Checkmarks save automatically.</div>';
+    content.innerHTML = html;
+
+    var blocks = document.getElementById("blocks");
+    state.sheet.forEach(function (cb) {
+      var block = document.createElement("div");
+      block.className = "client-block";
+      var head = document.createElement("div");
+      head.className = "client-head";
+      head.textContent = cb.client;
+      block.appendChild(head);
+      var meals = document.createElement("div");
+      meals.className = "meals";
+      cb.meals.forEach(function (m) {
+        var meal = document.createElement("div");
+        meal.className = "meal" + (m.done ? " done" : "");
+        var mh = document.createElement("div");
+        mh.className = "meal-head";
+        var box = document.createElement("div"); box.className = "box"; box.innerHTML = CHECK;
+        var title = document.createElement("div"); title.className = "meal-title"; title.textContent = m.title;
+        var chev = document.createElement("div"); chev.className = "chev"; chev.textContent = "\u25BC";
+        mh.appendChild(box); mh.appendChild(title); mh.appendChild(chev);
+
+        var body = document.createElement("div");
+        body.className = "meal-body";
+        if (m.mod && m.mod.length) {
+          var mod = document.createElement("div");
+          mod.className = "mod";
+          mod.innerHTML = '<div class="mod-label">MOD</div>';
+          m.mod.forEach(function (line) {
+            var ml = document.createElement("div");
+            ml.className = "mod-line" + (line === line.toUpperCase() && /[A-Z]/.test(line) ? " caps" : "");
+            ml.textContent = line;
+            mod.appendChild(ml);
+          });
+          body.appendChild(mod);
+        }
+        var steps = document.createElement("div");
+        steps.className = "steps";
+        steps.textContent = m.body || "";
+        body.appendChild(steps);
+
+        box.addEventListener("click", function (e) {
+          e.stopPropagation();
+          m.done = !m.done;
+          meal.classList.toggle("done", m.done);
+          updateProgress();
+          queueSave();
+        });
+        mh.addEventListener("click", function () {
+          meal.classList.toggle("open");
+        });
+
+        meal.appendChild(mh);
+        meal.appendChild(body);
+        meals.appendChild(meal);
+      });
+      block.appendChild(meals);
+      blocks.appendChild(block);
+    });
+    savebar.classList.add("visible");
+    updateProgress();
+  }
+
+  function counts() {
+    var total = 0, done = 0;
+    state.sheet.forEach(function (cb) {
+      cb.meals.forEach(function (m) { total++; if (m.done) done++; });
+    });
+    return { total: total, done: done };
+  }
+
+  function updateProgress() {
+    var c = counts();
+    var fill = document.getElementById("fill");
+    var plabel = document.getElementById("plabel");
+    if (fill) fill.style.width = (c.total ? (c.done / c.total * 100) : 0) + "%";
+    if (plabel) plabel.textContent = c.done + " of " + c.total + " meals completed";
+  }
+
+  function queueSave() {
+    dirty = true;
+    savestatus.classList.remove("err");
+    savetxt.textContent = "Saving\u2026";
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 700);
+  }
+
+  function doSave() {
+    var body = new URLSearchParams();
+    body.set("key", key);
+    body.set("chefName", state.chefName);
+    body.set("serviceDay", state.serviceDay);
+    body.set("sheet", JSON.stringify(state.sheet));
+    fetch(SAVE_URL, { method: "POST", body: body })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); })
+      .then(function () {
+        dirty = false;
+        savestatus.classList.remove("err");
+        savetxt.textContent = "All changes saved";
+      })
+      .catch(function () {
+        savestatus.classList.add("err");
+        savetxt.textContent = "Couldn't save \u2014 retrying\u2026";
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(doSave, 3000);
+      });
+  }
+
+  load();
+</script>
+</body>
+</html>
