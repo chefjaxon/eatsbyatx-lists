@@ -126,21 +126,20 @@
     var n = selCount();
     var target = state.pickCount;
     if (target > 0) {
-      countEl.textContent = n + " of " + target + " selected";
-      countEl.classList.toggle("ready", n === target);
-      submitbtn.disabled = (n !== target);
+      countEl.textContent = n + " selected \u00B7 package includes " + target;
     } else {
       countEl.textContent = n + " selected";
-      countEl.classList.toggle("ready", n > 0);
-      submitbtn.disabled = (n === 0);
     }
+    countEl.classList.toggle("ready", n > 0);
+    submitbtn.disabled = (n === 0);
   }
 
   function renderMenu() {
     meta.textContent = state.clientName + " \u00B7 " + state.weekLabel;
-    var pickText = state.pickCount > 0 ? "Pick " + state.pickCount + " meals" : "Pick your meals";
+    var pickText = state.pickCount > 0 ? "Pick your meals" : "Pick your meals";
+    var pkgText = state.pickCount > 0 ? " Your package includes " + state.pickCount + " meals this week, but feel free to select more if you\u2019d like extras." : "";
     var html = '';
-    html += '<div class="instruct"><b>' + pickText + '</b> by tapping the dishes you want. Add a note under any dish if there\u2019s something you\u2019d like adjusted or a question for us. Then hit submit \u2014 that\u2019s it.</div>';
+    html += '<div class="instruct"><b>' + pickText + '</b> by tapping the dishes you want.' + pkgText + ' Add a note under any dish if there\u2019s something you\u2019d like adjusted or a question for us. Then hit submit \u2014 that\u2019s it.</div>';
     html += '<div id="dishes"></div>';
     html += '<div class="footer-note">Questions? Text us anytime \u2014 we\u2019re happy to help.</div>';
     content.innerHTML = html;
