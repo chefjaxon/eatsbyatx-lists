@@ -153,6 +153,33 @@
     line-height: 1.65;
   }
 
+
+  .info-lines { background: var(--card); border: 1px solid var(--line); border-top: none; padding: 12px 16px; font-size: 14.5px; }
+  .info-lines .row { display: flex; gap: 8px; padding: 2px 0; }
+  .info-lines .lbl { color: var(--muted); flex: 0 0 auto; }
+  .access-row { background: var(--alert-bg); border: 1px solid var(--alert-line); border-radius: 8px; padding: 8px 11px; margin: 7px 0 4px; color: var(--alert-ink); font-weight: 600; font-size: 14px; }
+  .rest {
+    background: #fbeae6;
+    border: 1px solid #e5b3a6;
+    border-left: 4px solid #b54a32;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 12px 16px 0;
+  }
+  .rest-label { font-size: 12px; font-weight: 800; letter-spacing: 0.13em; color: #b54a32; margin-bottom: 6px; }
+  .rest-line { font-size: 15px; font-weight: 700; color: #7c3322; padding: 2px 0; }
+  .prefs {
+    background: var(--alert-bg);
+    border: 1px solid var(--alert-line);
+    border-left: 4px solid #c98a2e;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 10px 16px 0;
+  }
+  .prefs-label { font-size: 12px; font-weight: 800; letter-spacing: 0.13em; color: var(--alert-ink); margin-bottom: 6px; }
+  .prefs-line { font-size: 14.5px; color: var(--alert-ink); padding: 2px 0; }
+  .menu-label { margin: 16px 16px 0; font-size: 12px; font-weight: 800; letter-spacing: 0.13em; color: var(--muted); }
+  .recipe-link { display: inline-block; margin-top: 12px; font-size: 14px; color: var(--sage-deep); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
   .footer-note {
     margin: 30px 22px 0;
     font-size: 13px;
@@ -250,19 +277,80 @@
     state.sheet.forEach(function (cb) {
       var block = document.createElement("div");
       block.className = "client-block";
+
       var head = document.createElement("div");
       head.className = "client-head";
       head.textContent = cb.client;
       block.appendChild(head);
+
+      var hasInfo = cb.address || cb.access || cb.format || cb.spice;
+      if (hasInfo) {
+        var info = document.createElement("div");
+        info.className = "info-lines";
+        function row(lbl, val) {
+          if (!val) return;
+          var r = document.createElement("div");
+          r.className = "row";
+          var l = document.createElement("span"); l.className = "lbl"; l.textContent = lbl;
+          var v = document.createElement("span"); v.textContent = val;
+          r.appendChild(l); r.appendChild(v);
+          info.appendChild(r);
+        }
+        row("Address:", cb.address);
+        if (cb.access) {
+          var a = document.createElement("div");
+          a.className = "access-row";
+          a.textContent = "ACCESS: " + cb.access;
+          info.appendChild(a);
+        }
+        row("Format:", cb.format);
+        row("Spice Tolerance:", cb.spice);
+        block.appendChild(info);
+      }
+
+      if (cb.restrictions && cb.restrictions.length) {
+        var rest = document.createElement("div");
+        rest.className = "rest";
+        rest.innerHTML = '<div class="rest-label">\uD83D\uDEAB NEVER USE \u2014 HARD RESTRICTIONS</div>';
+        cb.restrictions.forEach(function (line) {
+          var rl = document.createElement("div");
+          rl.className = "rest-line";
+          rl.textContent = line;
+          rest.appendChild(rl);
+        });
+        block.appendChild(rest);
+      }
+
+      if (cb.prefs && cb.prefs.length) {
+        var prefs = document.createElement("div");
+        prefs.className = "prefs";
+        prefs.innerHTML = '<div class="prefs-label">\u26A0\uFE0F MODIFICATIONS & PREFERENCES</div>';
+        cb.prefs.forEach(function (line) {
+          var pl = document.createElement("div");
+          pl.className = "prefs-line";
+          pl.textContent = line;
+          prefs.appendChild(pl);
+        });
+        block.appendChild(prefs);
+      }
+
+      var menuLabel = document.createElement("div");
+      menuLabel.className = "menu-label";
+      menuLabel.textContent = "MENU";
+      block.appendChild(menuLabel);
+
       var meals = document.createElement("div");
       meals.className = "meals";
-      cb.meals.forEach(function (m) {
+      meals.style.borderTop = "1px solid var(--line)";
+      meals.style.borderRadius = "12px";
+      meals.style.marginTop = "8px";
+      cb.meals.forEach(function (m, idx) {
         var meal = document.createElement("div");
         meal.className = "meal" + (m.done ? " done" : "");
         var mh = document.createElement("div");
         mh.className = "meal-head";
         var box = document.createElement("div"); box.className = "box"; box.innerHTML = CHECK;
-        var title = document.createElement("div"); title.className = "meal-title"; title.textContent = m.title;
+        var title = document.createElement("div"); title.className = "meal-title"; title.textContent = (idx + 1) + ". " + m.title;
         var chev = document.createElement("div"); chev.className = "chev"; chev.textContent = "\u25BC";
         mh.appendChild(box); mh.appendChild(title); mh.appendChild(chev);
 
@@ -284,6 +372,15 @@
         steps.className = "steps";
         steps.textContent = m.body || "";
         body.appendChild(steps);
+        if (m.recipeUrl) {
+          var rl2 = document.createElement("a");
+          rl2.className = "recipe-link";
+          rl2.href = m.recipeUrl;
+          rl2.target = "_blank";
+          rl2.rel = "noopener";
+          rl2.textContent = "Open recipe in Notion \u2197";
+          body.appendChild(rl2);
+        }
 
         box.addEventListener("click", function (e) {
           e.stopPropagation();
