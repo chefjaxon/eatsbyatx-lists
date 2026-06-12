@@ -241,7 +241,9 @@
     var weekAfterStart = new Date(curWeekStart.getTime() + 14*86400000);
     // Next week unlocks Friday 3:00 PM of the current week
     var unlockAt = new Date(curWeekStart.getTime() + 5*86400000 + 15*3600000);
-    var nextWeekVisible = PREVIEW || now >= unlockAt;
+    // Launch-day override: expires automatically at midnight June 12, 2026
+    var launchOverride = now < new Date(2026, 5, 13);
+    var nextWeekVisible = PREVIEW || launchOverride || now >= unlockAt;
     var keep = records.filter(function(r){
       if (!r.date) return false;
       var p = r.date.split("-");
