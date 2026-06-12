@@ -185,7 +185,7 @@
 <script>
   var FEED_URL = "https://hook.us2.make.com/si0au8tgp34cu9z78uths7jnyd5jpr9q";
   var CHEF_NAMES = { ashlee:"Ashlee", jhonny:"Jhonny", sam:"Sam" };
-  var POLL_MS = 60000;
+  var POLL_MS = 300000;
 
   var params = new URLSearchParams(location.search);
   var chef = (params.get("chef") || "").toLowerCase().trim();
@@ -261,9 +261,9 @@
 
     if (!keep.length){
       content.innerHTML =
-        '<div class="empty"><h2>No cooks scheduled</h2>' +
-        '<p>Nothing on the calendar right now. New weeks appear here automatically.</p></div>';
-      weekEl.textContent = "No upcoming cooks";
+        '<div class="empty"><h2>Nothing scheduled yet</h2>' +
+        '<p>Next week\u2019s schedule drops Friday at 3:00 PM. Check back then!</p></div>';
+      weekEl.textContent = "New schedules drop Fridays at 3 PM";
       return;
     }
 
