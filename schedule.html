@@ -189,6 +189,7 @@
 
   var params = new URLSearchParams(location.search);
   var chef = (params.get("chef") || "").toLowerCase().trim();
+  var PREVIEW = params.get("preview") === "1";
   var content = document.getElementById("content");
   var titleEl = document.getElementById("title");
   var weekEl = document.getElementById("weekline");
@@ -240,7 +241,7 @@
     var weekAfterStart = new Date(curWeekStart.getTime() + 14*86400000);
     // Next week unlocks Friday 3:00 PM of the current week
     var unlockAt = new Date(curWeekStart.getTime() + 5*86400000 + 15*3600000);
-    var nextWeekVisible = now >= unlockAt;
+    var nextWeekVisible = PREVIEW || now >= unlockAt;
     var keep = records.filter(function(r){
       if (!r.date) return false;
       var p = r.date.split("-");
