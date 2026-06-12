@@ -236,7 +236,7 @@
       head.textContent = cb.client;
       block.appendChild(head);
 
-      if (cb.address || cb.access || cb.format || cb.spice) {
+      if (cb.address || cb.access || cb.format || cb.spice || cb.organic) {
         var info = document.createElement("div");
         info.className = "info-lines";
         function row(lbl, val) {
@@ -255,6 +255,7 @@
         }
         row("Format:", cb.format);
         row("Spice Tolerance:", cb.spice);
+        row("Organic Priority:", cb.organic);
         block.appendChild(info);
       }
 
