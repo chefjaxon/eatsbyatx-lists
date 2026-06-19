@@ -241,6 +241,17 @@
     var weekAfterStart = new Date(curWeekStart.getTime() + 14*86400000);
     // Next week unlocks Friday 3:00 PM of the current week
     var unlockAt = new Date(curWeekStart.getTime() + 5*86400000 + 15*3600000);
+
+    // Back boundary = the most recent Friday 3:00 PM release.
+    // Everything before this clears the moment the new schedule drops. A client
+    // being cooked on the release Friday survives (cook date === releaseCutoff),
+    // so they can still pull up their recipes during that day's cook.
+    var release = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    release.setDate(release.getDate() - ((release.getDay() - 5 + 7) % 7)); // back to Friday
+    release.setHours(15, 0, 0, 0);                                          // 3:00 PM
+    if (release > now) release.setDate(release.getDate() - 7);              // not released yet
+    var releaseCutoff = new Date(release.getFullYear(), release.getMonth(), release.getDate());
+
     // Launch-day override: expires automatically at midnight June 12, 2026
     var launchOverride = now < new Date(2026, 5, 13);
     var nextWeekVisible = PREVIEW || launchOverride || now >= unlockAt;
@@ -248,8 +259,7 @@
       if (!r.date) return false;
       var p = r.date.split("-");
       var d = new Date(Number(p[0]), Number(p[1])-1, Number(p[2]));
-      var cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
-      if (d < cutoff) return false;
+      if (d < releaseCutoff) return false;
       if (d < nextWeekStart) return true;
       if (d < weekAfterStart) return nextWeekVisible;
       return false;
