@@ -165,7 +165,7 @@
 
   var key = new URLSearchParams(location.search).get("key");
   var state = null;   // { clientName, weekLabel, pickCount, status, menu: [{title, desc, selected, note}] }
-  var history = [];   // parsed dish-history rows from Notion
+  var dishHistory = [];   // parsed dish-history rows from Notion (NOTE: never name this "history" — window.history is read-only)
   var RATE_PROMPT_LIMIT = 8;
 
   var content = document.getElementById("content");
@@ -182,14 +182,31 @@
 
   /* ================= CORE LOGIC (pure helpers) ================= */
 
+  // Properties can arrive in two shapes: keyed object (raw Notion API)
+  // or array of {label, type, ...} objects (Make's Notion module). Support both.
+  function propGet(page, name) {
+    try {
+      if (Array.isArray(page.properties)) {
+        for (var i = 0; i < page.properties.length; i++) {
+          if (page.properties[i].label === name) return page.properties[i];
+        }
+        return null;
+      }
+      return page.properties[name] || null;
+    } catch (e) { return null; }
+  }
+
   function propText(page, name) {
     try {
-      var p = page.properties[name];
+      var p = propGet(page, name);
       if (!p) return "";
-      var arr = p.rich_text || p.title;
+      var arr = p.rich_text || p.title || p.text;
       if (!arr || !arr.length) return "";
       var out = "";
-      for (var i = 0; i < arr.length; i++) out += arr[i].plain_text || "";
+      for (var i = 0; i < arr.length; i++) {
+        var it = arr[i];
+        out += (it.plain_text != null ? it.plain_text : (it.text && it.text.content) || "");
+      }
       return out;
     } catch (e) { return ""; }
   }
@@ -200,12 +217,13 @@
     for (var i = 0; i < apiBody.results.length; i++) {
       var pg = apiBody.results[i];
       if (!pg || !pg.properties) continue;
-      var ratingProp = pg.properties["Rating"];
-      var selProp = pg.properties["Selected"];
-      var weekProp = pg.properties["Week"];
-      var reqProp = pg.properties["Requested Again"];
+      var ratingProp = propGet(pg, "Rating");
+      var selProp = propGet(pg, "Selected");
+      var weekProp = propGet(pg, "Week");
+      var reqProp = propGet(pg, "Requested Again");
       rows.push({
         id: (pg.id || "").replace(/-/g, ""),
+        clientName: propText(pg, "Client Name"),
         title: propText(pg, "Dish"),
         desc: propText(pg, "Description"),
         note: propText(pg, "Client Note"),
@@ -217,6 +235,8 @@
         requested: !!(reqProp && reqProp.date && reqProp.date.start)
       });
     }
+    // Most recent week first (webhook order is not guaranteed)
+    rows.sort(function (x, y) { return (y.week || "").localeCompare(x.week || ""); });
     return rows;
   }
 
@@ -277,7 +297,9 @@
     fetch(HIST_URL + "?client=" + encodeURIComponent(state.clientName))
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function (data) {
-        history = parseHistory(data);
+        // Defense in depth: only keep rows that belong to this client,
+        // even though the webhook already filters by client name.
+        dishHistory = parseHistory(data).filter(function (r) { return r.clientName === state.clientName; });
         renderRatePrompt();
         renderHistorySection();
       })
@@ -335,7 +357,7 @@
 
   function renderRatePrompt() {
     ratezone.innerHTML = "";
-    var unrated = pickUnrated(history, state ? state.weekLabel : "");
+    var unrated = pickUnrated(dishHistory, state ? state.weekLabel : "");
     if (!unrated.length) return;
 
     var latestWeek = unrated[0].weekLabel;
@@ -417,7 +439,7 @@
 
   function renderHistorySection() {
     histzone.innerHTML = "";
-    var all = dedupHistory(history, state ? state.weekLabel : "");
+    var all = dedupHistory(dishHistory, state ? state.weekLabel : "");
     if (!all.length) return;
 
     var tog = document.createElement("div");
