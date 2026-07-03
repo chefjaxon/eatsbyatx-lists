@@ -8,6 +8,7 @@
   :root {
     --ink: #1f1d1a; --paper: #f7f4ed; --card: #fffdf8; --line: #e4ddcd;
     --sage: #5c6b54; --sage-deep: #44503e; --clay: #c2683f; --muted: #8a8475;
+    --gold: #c99a3f;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body { font-family: ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif; background: var(--paper); color: var(--ink); line-height: 1.5; padding-bottom: 96px; }
@@ -63,6 +64,78 @@
   .thanks .big { font-family: Georgia, serif; font-size: 24px; font-weight: 600; }
   .thanks p { color: var(--muted); font-size: 15px; margin-top: 10px; line-height: 1.7; }
   .editlink { display: inline-block; margin-top: 18px; color: var(--sage-deep); font-weight: 600; font-size: 14.5px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+  /* ---- Section headers ---- */
+  .sect-head { margin: 26px 22px 0; display: flex; align-items: baseline; gap: 10px; }
+  .sect-head .t { font-family: Georgia, serif; font-size: 19px; font-weight: 600; }
+  .sect-head .s { font-size: 13px; color: var(--muted); }
+
+  /* ---- Rate last week ---- */
+  .rate-wrap { margin: 0 22px; }
+  .rate-card {
+    margin-top: 12px; background: #fbf7ee; border: 1.5px solid #e8dfc8;
+    border-radius: 14px; padding: 14px 16px;
+  }
+  .rate-card.done { background: var(--card); border-color: var(--line); }
+  .rate-title { font-family: Georgia, serif; font-size: 16px; font-weight: 600; line-height: 1.35; }
+  .rate-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .stars { display: flex; gap: 6px; margin-top: 10px; }
+  .star { font-size: 27px; line-height: 1; color: #d8cfc0; cursor: pointer; background: none; border: none; padding: 2px 3px; }
+  .star.on { color: var(--gold); }
+  .stars.locked .star { cursor: default; }
+  .rate-thanks { font-size: 13px; color: var(--sage-deep); font-weight: 600; margin-top: 8px; }
+  .cmt-row { display: none; margin-top: 10px; gap: 8px; }
+  .cmt-row.visible { display: flex; }
+  .cmt-row input {
+    flex: 1; border: 1px solid var(--line); border-radius: 10px;
+    padding: 9px 12px; font: inherit; font-size: 13.5px; background: #fff; color: var(--ink);
+  }
+  .cmt-row button {
+    background: var(--sage); color: #fff; border: none; border-radius: 10px;
+    padding: 9px 14px; font-size: 13.5px; font-weight: 700; cursor: pointer;
+  }
+  .rate-more { margin: 12px 22px 0; text-align: center; }
+  .rate-more span { color: var(--sage-deep); font-weight: 600; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+  /* ---- Have it again ---- */
+  .hist-toggle {
+    margin: 26px 22px 0; background: var(--card); border: 1.5px solid var(--line);
+    border-radius: 14px; padding: 15px 16px; cursor: pointer; user-select: none;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .hist-toggle .ic { font-size: 20px; }
+  .hist-toggle .tx { flex: 1; }
+  .hist-toggle .tx b { font-family: Georgia, serif; font-size: 16.5px; font-weight: 600; display: block; }
+  .hist-toggle .tx small { color: var(--muted); font-size: 13px; }
+  .hist-toggle .chev { color: var(--muted); transition: transform 0.2s; }
+  .hist-toggle.open .chev { transform: rotate(180deg); }
+  .hist-body { display: none; }
+  .hist-body.open { display: block; }
+  .hist-search { margin: 12px 22px 0; }
+  .hist-search input {
+    width: 100%; border: 1.5px solid var(--line); border-radius: 12px;
+    padding: 11px 14px; font: inherit; font-size: 14.5px; background: var(--card); color: var(--ink);
+  }
+  .hist-search input::placeholder { color: #b3ac9b; }
+  .hist-card {
+    margin: 12px 22px 0; background: var(--card); border: 1.5px solid var(--line);
+    border-radius: 14px; padding: 14px 16px;
+  }
+  .hist-card.requested { border-color: var(--clay); box-shadow: 0 0 0 1px var(--clay); }
+  .hist-title { font-family: Georgia, serif; font-size: 16px; font-weight: 600; line-height: 1.35; }
+  .hist-meta { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .hist-meta .rated { color: var(--gold); letter-spacing: 1px; }
+  .hist-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .pill {
+    border: 1.5px solid var(--clay); color: var(--clay); background: none;
+    border-radius: 999px; padding: 7px 14px; font-size: 13.5px; font-weight: 700; cursor: pointer;
+  }
+  .pill.on { background: var(--clay); color: #fff; }
+  .mini-stars { display: flex; gap: 3px; }
+  .mini-stars .star { font-size: 21px; padding: 1px 2px; }
+  .hist-more { margin: 14px 22px 0; text-align: center; }
+  .hist-more span { color: var(--sage-deep); font-weight: 600; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .hist-empty { margin: 16px 22px 0; text-align: center; color: var(--muted); font-size: 14px; }
 </style>
 </head>
 <body>
@@ -72,7 +145,9 @@
     <h1>Your weekly menu</h1>
     <div class="meta" id="meta"></div>
   </header>
+  <div id="ratezone"></div>
   <div id="content"><div class="state-msg">Loading your menu&hellip;</div></div>
+  <div id="histzone"></div>
 </div>
 
 <div class="submitbar" id="submitbar">
@@ -83,13 +158,19 @@
 </div>
 
 <script>
-  var GET_URL  = "https://hook.us2.make.com/tay2tjv1singwv4o9svq6qf1ydwpspqi";
-  var SAVE_URL = "https://hook.us2.make.com/ucaq72jw7ofxkpyvy19455s6cylht5n9";
+  var GET_URL    = "https://hook.us2.make.com/tay2tjv1singwv4o9svq6qf1ydwpspqi";
+  var SAVE_URL   = "https://hook.us2.make.com/ucaq72jw7ofxkpyvy19455s6cylht5n9";
+  var HIST_URL   = "https://hook.us2.make.com/59ga33b1tlg4y4ce1hvcrskh816yg22r";
+  var UPDATE_URL = "https://hook.us2.make.com/1jnlhrkbemq50cfaq583uxsy1pmrtbo3";
 
   var key = new URLSearchParams(location.search).get("key");
-  var state = null; // { clientName, weekLabel, pickCount, status, menu: [{title, desc, selected, note}] }
+  var state = null;   // { clientName, weekLabel, pickCount, status, menu: [{title, desc, selected, note}] }
+  var history = [];   // parsed dish-history rows from Notion
+  var RATE_PROMPT_LIMIT = 8;
 
   var content = document.getElementById("content");
+  var ratezone = document.getElementById("ratezone");
+  var histzone = document.getElementById("histzone");
   var meta = document.getElementById("meta");
   var submitbar = document.getElementById("submitbar");
   var countEl = document.getElementById("count");
@@ -98,6 +179,110 @@
   var CHECK = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   function showMessage(html) { content.innerHTML = '<div class="state-msg">' + html + '</div>'; submitbar.classList.remove("visible"); }
+
+  /* ================= CORE LOGIC (pure helpers) ================= */
+
+  function propText(page, name) {
+    try {
+      var p = page.properties[name];
+      if (!p) return "";
+      var arr = p.rich_text || p.title;
+      if (!arr || !arr.length) return "";
+      var out = "";
+      for (var i = 0; i < arr.length; i++) out += arr[i].plain_text || "";
+      return out;
+    } catch (e) { return ""; }
+  }
+
+  function parseHistory(apiBody) {
+    var rows = [];
+    if (!apiBody || !apiBody.results) return rows;
+    for (var i = 0; i < apiBody.results.length; i++) {
+      var pg = apiBody.results[i];
+      if (!pg || !pg.properties) continue;
+      var ratingProp = pg.properties["Rating"];
+      var selProp = pg.properties["Selected"];
+      var weekProp = pg.properties["Week"];
+      var reqProp = pg.properties["Requested Again"];
+      rows.push({
+        id: (pg.id || "").replace(/-/g, ""),
+        title: propText(pg, "Dish"),
+        desc: propText(pg, "Description"),
+        note: propText(pg, "Client Note"),
+        ratingComment: propText(pg, "Rating Comment"),
+        weekLabel: propText(pg, "Week Label"),
+        week: (weekProp && weekProp.date && weekProp.date.start) ? weekProp.date.start : "",
+        selected: !!(selProp && selProp.checkbox),
+        rating: (ratingProp && typeof ratingProp.number === "number") ? ratingProp.number : 0,
+        requested: !!(reqProp && reqProp.date && reqProp.date.start)
+      });
+    }
+    return rows;
+  }
+
+  // Dishes eligible for the "rate last week" prompt: received (selected),
+  // unrated, and not from the week currently open on this page.
+  function pickUnrated(rows, currentWeekLabel) {
+    var out = [], seen = {}, rated = {};
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (r.title && r.rating > 0) rated[r.title.toLowerCase()] = true;
+    }
+    for (var j = 0; j < rows.length; j++) {
+      var row = rows[j];
+      if (!row.selected || row.rating > 0 || !row.title) continue;
+      if (currentWeekLabel && row.weekLabel && row.weekLabel.indexOf(currentWeekLabel) === 0) continue;
+      if (currentWeekLabel && row.weekLabel && currentWeekLabel.indexOf(row.weekLabel) === 0) continue;
+      var k = row.title.toLowerCase();
+      if (seen[k] || rated[k]) continue; // one prompt per dish; skip if rated in any week
+      seen[k] = true;
+      out.push(row);
+    }
+    // rows arrive sorted by Week desc from the webhook; keep that order
+    return out;
+  }
+
+  // Past dishes for the "have it again" browser: received dishes only,
+  // deduped by title (most recent kept), excluding the current week.
+  function dedupHistory(rows, currentWeekLabel) {
+    var seen = {}, out = [];
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (!r.selected || !r.title) continue;
+      if (currentWeekLabel && r.weekLabel && r.weekLabel.indexOf(currentWeekLabel) === 0) continue;
+      var k = r.title.toLowerCase();
+      if (seen[k]) continue;
+      seen[k] = true;
+      out.push(r);
+    }
+    return out;
+  }
+
+  /* ================= NETWORK ================= */
+
+  function postUpdate(row, fields) {
+    var body = new URLSearchParams();
+    body.set("pageId", row.id);
+    if (fields.rating) {
+      body.set("rating", String(fields.rating));
+      body.set("comment", fields.comment || "");
+    }
+    if (fields.requestAgain) body.set("requestAgain", "1");
+    return fetch(UPDATE_URL, { method: "POST", body: body })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); });
+  }
+
+  function loadHistory() {
+    if (!state || !state.clientName) return;
+    fetch(HIST_URL + "?client=" + encodeURIComponent(state.clientName))
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (data) {
+        history = parseHistory(data);
+        renderRatePrompt();
+        renderHistorySection();
+      })
+      .catch(function () { /* history is a bonus — the menu must never break because of it */ });
+  }
 
   function load() {
     if (!key) { showMessage("This link is missing its menu code.<br>Please use the exact link we texted you, or reach out and we'll resend it."); return; }
@@ -113,8 +298,224 @@
           menu: typeof data.menu === "string" ? JSON.parse(data.menu) : data.menu
         };
         if (state.status === "submitted") { renderThanks(true); } else { renderMenu(); }
+        loadHistory();
       })
-      .catch(function () { showMessage("We couldn't load your menu right now.<br>Give it a moment and refresh \u2014 or text us and we'll sort it out."); });
+      .catch(function () { showMessage("We couldn't load your menu right now.<br>Give it a moment and refresh — or text us and we'll sort it out."); });
+  }
+
+  /* ================= RATE LAST WEEK ================= */
+
+  function starRow(row, mini, onRated) {
+    var wrapEl = document.createElement("div");
+    wrapEl.className = "stars" + (mini ? " mini-stars" : "");
+    var current = row.rating || 0;
+    var btns = [];
+    function paint(n) { for (var i = 0; i < 5; i++) btns[i].classList.toggle("on", i < n); }
+    for (var i = 1; i <= 5; i++) {
+      (function (n) {
+        var b = document.createElement("button");
+        b.className = "star"; b.type = "button"; b.textContent = "★";
+        b.setAttribute("aria-label", n + " star" + (n > 1 ? "s" : ""));
+        b.addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (wrapEl.classList.contains("locked")) return;
+          paint(n);
+          wrapEl.classList.add("locked");
+          postUpdate(row, { rating: n })
+            .then(function () { row.rating = n; if (onRated) onRated(n); })
+            .catch(function () { wrapEl.classList.remove("locked"); paint(row.rating || 0); });
+        });
+        btns.push(b); wrapEl.appendChild(b);
+      })(i);
+    }
+    paint(current);
+    if (current > 0) wrapEl.classList.add("locked");
+    return wrapEl;
+  }
+
+  function renderRatePrompt() {
+    ratezone.innerHTML = "";
+    var unrated = pickUnrated(history, state ? state.weekLabel : "");
+    if (!unrated.length) return;
+
+    var latestWeek = unrated[0].weekLabel;
+    var batch = [];
+    for (var i = 0; i < unrated.length; i++) if (unrated[i].weekLabel === latestWeek) batch.push(unrated[i]);
+    var rest = unrated.length - batch.length;
+    if (batch.length > RATE_PROMPT_LIMIT) batch = batch.slice(0, RATE_PROMPT_LIMIT);
+
+    var head = document.createElement("div");
+    head.className = "sect-head";
+    head.innerHTML = '<span class="t">How were your meals?</span><span class="s">' + esc(latestWeek) + '</span>';
+    ratezone.appendChild(head);
+
+    var wrapEl = document.createElement("div");
+    wrapEl.className = "rate-wrap";
+    batch.forEach(function (row) { wrapEl.appendChild(rateCard(row)); });
+    ratezone.appendChild(wrapEl);
+
+    if (rest > 0) {
+      var more = document.createElement("div");
+      more.className = "rate-more";
+      more.innerHTML = '<span>You have ' + rest + ' more unrated meal' + (rest > 1 ? 's' : '') + ' — find them in "Have it again" below</span>';
+      more.querySelector("span").addEventListener("click", openHistory);
+      ratezone.appendChild(more);
+    }
+  }
+
+  function rateCard(row) {
+    var card = document.createElement("div");
+    card.className = "rate-card";
+
+    var t = document.createElement("div"); t.className = "rate-title"; t.textContent = row.title;
+    card.appendChild(t);
+    var s = document.createElement("div"); s.className = "rate-sub"; s.textContent = "Tap to rate — it helps us build your future menus";
+    card.appendChild(s);
+
+    var cmtRow = document.createElement("div");
+    cmtRow.className = "cmt-row";
+    var inp = document.createElement("input");
+    inp.placeholder = "Anything we should know? (optional)";
+    var sendBtn = document.createElement("button");
+    sendBtn.type = "button"; sendBtn.textContent = "Send";
+    cmtRow.appendChild(inp); cmtRow.appendChild(sendBtn);
+
+    var thanks = document.createElement("div");
+    thanks.className = "rate-thanks";
+
+    card.appendChild(starRow(row, false, function (n) {
+      card.classList.add("done");
+      s.style.display = "none";
+      thanks.textContent = "Thank you! Saved.";
+      card.appendChild(thanks);
+      cmtRow.classList.add("visible");
+      card.appendChild(cmtRow);
+    }));
+
+    sendBtn.addEventListener("click", function () {
+      var c = inp.value.trim();
+      if (!c) { cmtRow.classList.remove("visible"); return; }
+      sendBtn.disabled = true; sendBtn.textContent = "…";
+      postUpdate(row, { rating: row.rating, comment: c })
+        .then(function () { row.ratingComment = c; cmtRow.classList.remove("visible"); thanks.textContent = "Thank you! Note saved."; })
+        .catch(function () { sendBtn.disabled = false; sendBtn.textContent = "Send"; });
+    });
+
+    return card;
+  }
+
+  /* ================= HAVE IT AGAIN ================= */
+
+  var histOpen = false, histShown = 20, histQuery = "";
+
+  function openHistory() {
+    histOpen = true;
+    renderHistorySection();
+    var el = document.getElementById("histtoggle");
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function renderHistorySection() {
+    histzone.innerHTML = "";
+    var all = dedupHistory(history, state ? state.weekLabel : "");
+    if (!all.length) return;
+
+    var tog = document.createElement("div");
+    tog.className = "hist-toggle" + (histOpen ? " open" : "");
+    tog.id = "histtoggle";
+    tog.innerHTML = '<span class="ic">🍽️</span><span class="tx"><b>Have it again</b><small>' + all.length + ' dishes you’ve had before — tap to request a repeat</small></span><span class="chev">▼</span>';
+    tog.addEventListener("click", function () { histOpen = !histOpen; renderHistorySection(); });
+    histzone.appendChild(tog);
+
+    if (!histOpen) return;
+
+    var body = document.createElement("div");
+    body.className = "hist-body open";
+
+    var search = document.createElement("div");
+    search.className = "hist-search";
+    var sInp = document.createElement("input");
+    sInp.placeholder = "Search your past dishes…";
+    sInp.value = histQuery;
+    sInp.addEventListener("input", function () { histQuery = sInp.value; drawList(); });
+    search.appendChild(sInp);
+    body.appendChild(search);
+
+    var listEl = document.createElement("div");
+    body.appendChild(listEl);
+    var moreEl = document.createElement("div");
+    moreEl.className = "hist-more";
+    body.appendChild(moreEl);
+
+    function drawList() {
+      listEl.innerHTML = ""; moreEl.innerHTML = "";
+      var q = histQuery.trim().toLowerCase();
+      var rows = [];
+      for (var i = 0; i < all.length; i++) {
+        if (!q || all[i].title.toLowerCase().indexOf(q) !== -1) rows.push(all[i]);
+      }
+      if (!rows.length) {
+        listEl.innerHTML = '<div class="hist-empty">No past dishes match that search.</div>';
+        return;
+      }
+      var show = rows.slice(0, histShown);
+      show.forEach(function (row) { listEl.appendChild(histCard(row)); });
+      if (rows.length > show.length) {
+        var m = document.createElement("span");
+        m.textContent = "Show " + (rows.length - show.length) + " more";
+        m.addEventListener("click", function () { histShown += 20; drawList(); });
+        moreEl.appendChild(m);
+      }
+    }
+    drawList();
+    histzone.appendChild(body);
+  }
+
+  function histCard(row) {
+    var card = document.createElement("div");
+    card.className = "hist-card" + (row.requested ? " requested" : "");
+
+    var t = document.createElement("div"); t.className = "hist-title"; t.textContent = row.title;
+    card.appendChild(t);
+
+    var metaEl = document.createElement("div");
+    metaEl.className = "hist-meta";
+    var metaTxt = row.weekLabel || "";
+    metaEl.textContent = metaTxt;
+    card.appendChild(metaEl);
+
+    var act = document.createElement("div");
+    act.className = "hist-actions";
+
+    act.appendChild(starRow(row, true, function () { /* rated from history — nothing else to do */ }));
+
+    var pill = document.createElement("button");
+    pill.type = "button";
+    pill.className = "pill" + (row.requested ? " on" : "");
+    pill.textContent = row.requested ? "Requested ✓" : "Have it again";
+    pill.addEventListener("click", function () {
+      if (row.requested) return;
+      pill.disabled = true;
+      postUpdate(row, { requestAgain: true })
+        .then(function () {
+          row.requested = true;
+          pill.disabled = false;
+          pill.classList.add("on");
+          pill.textContent = "Requested ✓";
+          card.classList.add("requested");
+        })
+        .catch(function () { pill.disabled = false; });
+    });
+    act.appendChild(pill);
+
+    card.appendChild(act);
+    return card;
+  }
+
+  /* ================= MENU (unchanged flow) ================= */
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
   function selCount() {
@@ -126,7 +527,7 @@
     var n = selCount();
     var target = state.pickCount;
     if (target > 0) {
-      countEl.textContent = n + " selected \u00B7 package includes " + target;
+      countEl.textContent = n + " selected · package includes " + target;
     } else {
       countEl.textContent = n + " selected";
     }
@@ -135,13 +536,12 @@
   }
 
   function renderMenu() {
-    meta.textContent = state.clientName + " \u00B7 " + state.weekLabel;
-    var pickText = state.pickCount > 0 ? "Pick your meals" : "Pick your meals";
-    var pkgText = state.pickCount > 0 ? " Your package includes " + state.pickCount + " meals this week, but feel free to select more if you\u2019d like extras." : "";
+    meta.textContent = state.clientName + " · " + state.weekLabel;
+    var pkgText = state.pickCount > 0 ? " Your package includes " + state.pickCount + " meals this week, but feel free to select more if you’d like extras." : "";
     var html = '';
-    html += '<div class="instruct"><b>' + pickText + '</b> by tapping the dishes you want.' + pkgText + ' Add a note under any dish if there\u2019s something you\u2019d like adjusted or a question for us. Then hit submit \u2014 that\u2019s it.</div>';
+    html += '<div class="instruct"><b>Pick your meals</b> by tapping the dishes you want.' + pkgText + ' Add a note under any dish if there’s something you’d like adjusted or a question for us. Then hit submit — that’s it.</div>';
     html += '<div id="dishes"></div>';
-    html += '<div class="footer-note">Questions? Text us anytime \u2014 we\u2019re happy to help.</div>';
+    html += '<div class="footer-note">Questions? Text us anytime — we’re happy to help.</div>';
     content.innerHTML = html;
 
     var dishes = document.getElementById("dishes");
@@ -184,12 +584,12 @@
 
   function renderThanks(existing) {
     submitbar.classList.remove("visible");
-    meta.textContent = state.clientName + " \u00B7 " + state.weekLabel;
+    meta.textContent = state.clientName + " · " + state.weekLabel;
     var picks = state.menu.filter(function (d) { return d.selected; });
     var html = '<div class="thanks">';
-    html += '<div class="big">' + (existing ? "Your selections are in" : "Got it \u2014 thank you!") + '</div>';
-    html += '<p>You picked:<br><b>' + picks.map(function (d) { return d.title.split(" with ")[0]; }).join("<br>") + '</b></p>';
-    html += '<p>We\u2019ll take it from here. Your grocery checklist will be on its way before your service day.</p>';
+    html += '<div class="big">' + (existing ? "Your selections are in" : "Got it — thank you!") + '</div>';
+    html += '<p>You picked:<br><b>' + picks.map(function (d) { return esc(d.title.split(" with ")[0]); }).join("<br>") + '</b></p>';
+    html += '<p>We’ll take it from here. Your grocery checklist will be on its way before your service day.</p>';
     html += '<span class="editlink" id="editlink">Need to change something? Edit selections</span>';
     html += '</div>';
     content.innerHTML = html;
@@ -201,7 +601,7 @@
 
   submitbtn.addEventListener("click", function () {
     submitbtn.disabled = true;
-    submitbtn.textContent = "Submitting\u2026";
+    submitbtn.textContent = "Submitting…";
     var body = new URLSearchParams();
     body.set("key", key);
     body.set("clientName", state.clientName);
