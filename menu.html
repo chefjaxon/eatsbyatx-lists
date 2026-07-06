@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build 2026-07-05.4 : repeat dishes pre-fill last time's note -->
+<!-- build 2026-07-05.5 : half meals, under-pick warning, favorites first, service rating -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -137,6 +137,17 @@
   .hist-more { margin: 14px 22px 0; text-align: center; }
   .hist-more span { color: var(--sage-deep); font-weight: 600; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
   .hist-empty { margin: 16px 22px 0; text-align: center; color: var(--muted); font-size: 14px; }
+
+  .half-chip {
+    display: inline-block; vertical-align: 2px; margin-left: 8px;
+    background: #efe7d4; color: #8a6d3b; border-radius: 999px;
+    padding: 2px 9px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em;
+    font-family: ui-sans-serif, -apple-system, sans-serif;
+  }
+  .svc-row { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .svc-row .lbl { font-size: 14.5px; font-weight: 600; }
+  .svc-send { margin-top: 12px; width: 100%; background: var(--sage); color: #fff; border: none; border-radius: 10px; padding: 12px; font-size: 14.5px; font-weight: 700; cursor: pointer; }
+  .svc-send:disabled { background: #d8cfc0; cursor: default; }
 </style>
 </head>
 <body>
@@ -163,6 +174,7 @@
   var SAVE_URL   = "https://hook.us2.make.com/ucaq72jw7ofxkpyvy19455s6cylht5n9";
   var HIST_URL   = "https://hook.us2.make.com/59ga33b1tlg4y4ce1hvcrskh816yg22r";
   var UPDATE_URL = "https://hook.us2.make.com/1jnlhrkbemq50cfaq583uxsy1pmrtbo3";
+  var SVC_URL    = "https://hook.us2.make.com/2fb2yxqkisgwcwdjavuuim3ncbv00tmk";
 
   var key = new URLSearchParams(location.search).get("key");
   var state = null;   // { clientName, weekLabel, pickCount, status, menu: [{title, desc, selected, note}] }
@@ -222,9 +234,11 @@
       var selProp = propGet(pg, "Selected");
       var weekProp = propGet(pg, "Week");
       var reqProp = propGet(pg, "Requested Again");
+      var halfProp = propGet(pg, "Half Meal");
       rows.push({
         id: (pg.id || "").replace(/-/g, ""),
         clientName: propText(pg, "Client Name"),
+        half: !!(halfProp && halfProp.checkbox),
         title: propText(pg, "Dish"),
         desc: propText(pg, "Description"),
         note: propText(pg, "Client Note"),
@@ -385,6 +399,78 @@
       more.querySelector("span").addEventListener("click", openHistory);
       ratezone.appendChild(more);
     }
+
+    ratezone.appendChild(svcCard(latestWeek));
+  }
+
+  // Small star row that just reports its value (no network until Send)
+  function localStars(onSet) {
+    var wrapEl = document.createElement("div");
+    wrapEl.className = "stars mini-stars";
+    var val = 0, btns = [];
+    function paint(n) { for (var i = 0; i < 5; i++) btns[i].classList.toggle("on", i < n); }
+    for (var i = 1; i <= 5; i++) {
+      (function (n) {
+        var b = document.createElement("button");
+        b.className = "star"; b.type = "button"; b.textContent = "★";
+        b.addEventListener("click", function () { val = n; paint(n); if (onSet) onSet(n); });
+        btns.push(b); wrapEl.appendChild(b);
+      })(i);
+    }
+    return { el: wrapEl, get: function () { return val; } };
+  }
+
+  function svcCard(weekLabelForCard) {
+    var card = document.createElement("div");
+    card.className = "rate-card";
+    card.style.marginLeft = "22px"; card.style.marginRight = "22px";
+
+    var t = document.createElement("div"); t.className = "rate-title"; t.textContent = "How was the service overall?";
+    card.appendChild(t);
+    var s = document.createElement("div"); s.className = "rate-sub"; s.textContent = "Totally optional — takes ten seconds";
+    card.appendChild(s);
+
+    var parts = [["Food", "food"], ["Ingredient quality", "ingredients"], ["Cleanup", "cleanup"], ["Your chef", "chef"]];
+    var widgets = {};
+    parts.forEach(function (p) {
+      var rowEl = document.createElement("div");
+      rowEl.className = "svc-row";
+      var lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = p[0];
+      var st = localStars(null);
+      widgets[p[1]] = st;
+      rowEl.appendChild(lbl); rowEl.appendChild(st.el);
+      card.appendChild(rowEl);
+    });
+
+    var inp = document.createElement("input");
+    inp.placeholder = "Anything else about the service? (optional)";
+    inp.style.cssText = "width:100%;margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;font-size:13.5px;background:#fff;color:var(--ink);";
+    card.appendChild(inp);
+
+    var send = document.createElement("button");
+    send.type = "button"; send.className = "svc-send"; send.textContent = "Send service rating";
+    send.addEventListener("click", function () {
+      var anySet = ["food", "ingredients", "cleanup", "chef"].some(function (k) { return widgets[k].get() > 0; });
+      if (!anySet && !inp.value.trim()) return;
+      send.disabled = true; send.textContent = "Sending…";
+      var body = new URLSearchParams();
+      body.set("client", state.clientName);
+      body.set("weekLabel", weekLabelForCard || state.weekLabel);
+      ["food", "ingredients", "cleanup", "chef"].forEach(function (k) {
+        if (widgets[k].get() > 0) body.set(k, String(widgets[k].get()));
+      });
+      body.set("comment", inp.value.trim());
+      fetch(SVC_URL, { method: "POST", body: body })
+        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); })
+        .then(function () {
+          card.classList.add("done");
+          card.innerHTML = '<div class="rate-title">Thank you!</div><div class="rate-sub">Your service rating is in — we read every one.</div>';
+        })
+        .catch(function () { send.disabled = false; send.textContent = "Try again"; });
+    });
+    card.appendChild(send);
+
+    return card;
   }
 
   function rateCard(row) {
@@ -482,6 +568,13 @@
       for (var i = 0; i < all.length; i++) {
         if (!q || all[i].title.toLowerCase().indexOf(q) !== -1) rows.push(all[i]);
       }
+      // Favorites first: 4-5 star dishes on top, then the rest, each newest first
+      rows.sort(function (x, y) {
+        var xf = (x.rating >= 4) ? 1 : 0, yf = (y.rating >= 4) ? 1 : 0;
+        if (xf !== yf) return yf - xf;
+        if ((x.rating || 0) !== (y.rating || 0)) return (y.rating || 0) - (x.rating || 0);
+        return (y.week || "").localeCompare(x.week || "");
+      });
       if (!rows.length) {
         listEl.innerHTML = '<div class="hist-empty">No past dishes match that search.</div>';
         return;
@@ -521,7 +614,9 @@
     if (isSel) box.style.background = "var(--clay)", box.style.borderColor = "var(--clay)", box.querySelector("svg").style.opacity = "1";
     var txt = document.createElement("div");
     var t = document.createElement("div"); t.className = "hist-title"; t.textContent = row.title;
+    if (row.half) { var hc = document.createElement("span"); hc.className = "half-chip"; hc.textContent = "½ meal"; t.appendChild(hc); }
     txt.appendChild(t);
+    if (row.desc) { var dEl = document.createElement("div"); dEl.className = "dish-desc"; dEl.textContent = row.desc; txt.appendChild(dEl); }
     var metaEl = document.createElement("div");
     metaEl.className = "hist-meta";
     metaEl.textContent = "You had this " + (row.weekLabel ? row.weekLabel.toLowerCase().replace("week of", "the week of") : "before");
@@ -554,7 +649,7 @@
         box.style.background = ""; box.style.borderColor = ""; box.querySelector("svg").style.opacity = "0";
         na.style.display = "none";
       } else {
-        state.menu.push({ title: row.title, desc: row.desc || "", selected: true, note: ta.value || "", repeat: true });
+        state.menu.push({ title: row.title, desc: row.desc || "", selected: true, note: ta.value || "", repeat: true, half: !!row.half });
         card.classList.add("requested");
         box.style.background = "var(--clay)"; box.style.borderColor = "var(--clay)"; box.querySelector("svg").style.opacity = "1";
         na.style.display = "block";
@@ -571,18 +666,23 @@
     return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  function selCount() {
-    var n = 0; state.menu.forEach(function (d) { if (d.selected) n++; });
+  // Snacks and simple salads count as half a meal (two snacks = one meal).
+  function selUnits() {
+    var n = 0; state.menu.forEach(function (d) { if (d.selected) n += (d.half ? 0.5 : 1); });
     return n;
   }
 
+  function fmtUnits(n) {
+    return (n % 1 === 0) ? String(n) : String(Math.floor(n)) + "½";
+  }
+
   function updateBar() {
-    var n = selCount();
+    var n = selUnits();
     var target = state.pickCount;
     if (target > 0) {
-      countEl.textContent = n + " selected · package includes " + target;
+      countEl.textContent = fmtUnits(n) + " selected · package includes " + target;
     } else {
-      countEl.textContent = n + " selected";
+      countEl.textContent = fmtUnits(n) + " selected";
     }
     countEl.classList.toggle("ready", n > 0);
     submitbtn.disabled = (n === 0);
@@ -608,6 +708,7 @@
       var box = document.createElement("div"); box.className = "box"; box.innerHTML = CHECK;
       var txt = document.createElement("div");
       var t = document.createElement("div"); t.className = "dish-title"; t.textContent = d.title;
+      if (d.half) { var hc = document.createElement("span"); hc.className = "half-chip"; hc.textContent = "½ meal"; t.appendChild(hc); }
       txt.appendChild(t);
       if (d.desc) { var ds = document.createElement("div"); ds.className = "dish-desc"; ds.textContent = d.desc; txt.appendChild(ds); }
       top.appendChild(box); top.appendChild(txt);
@@ -656,6 +757,11 @@
   }
 
   submitbtn.addEventListener("click", function () {
+    var units = selUnits();
+    if (state.pickCount > 0 && units < state.pickCount) {
+      var ok = window.confirm("You’ve picked " + fmtUnits(units) + " so far, and your package includes " + state.pickCount + " meals. Submit anyway?");
+      if (!ok) return;
+    }
     submitbtn.disabled = true;
     submitbtn.textContent = "Submitting…";
     var body = new URLSearchParams();
