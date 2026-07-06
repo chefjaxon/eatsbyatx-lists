@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build 2026-07-03.2 : ratings + past-dish picker -->
+<!-- build 2026-07-05.3 : editable stars, repeats select into this week, clean post-submit -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -284,11 +284,12 @@
   function postUpdate(row, fields) {
     var body = new URLSearchParams();
     body.set("pageId", row.id);
+    body.set("dish", row.title || "");
+    body.set("client", (state && state.clientName) || "");
     if (fields.rating) {
       body.set("rating", String(fields.rating));
       body.set("comment", fields.comment || "");
     }
-    if (fields.requestAgain) body.set("requestAgain", "1");
     return fetch(UPDATE_URL, { method: "POST", body: body })
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); });
   }
@@ -328,10 +329,11 @@
 
   /* ================= RATE LAST WEEK ================= */
 
+  // Stars are always editable — tapping a new value re-saves over the old one.
   function starRow(row, mini, onRated) {
     var wrapEl = document.createElement("div");
     wrapEl.className = "stars" + (mini ? " mini-stars" : "");
-    var current = row.rating || 0;
+    var busy = false;
     var btns = [];
     function paint(n) { for (var i = 0; i < 5; i++) btns[i].classList.toggle("on", i < n); }
     for (var i = 1; i <= 5; i++) {
@@ -341,18 +343,17 @@
         b.setAttribute("aria-label", n + " star" + (n > 1 ? "s" : ""));
         b.addEventListener("click", function (e) {
           e.stopPropagation();
-          if (wrapEl.classList.contains("locked")) return;
+          if (busy || row.rating === n) return;
+          busy = true;
           paint(n);
-          wrapEl.classList.add("locked");
-          postUpdate(row, { rating: n })
-            .then(function () { row.rating = n; if (onRated) onRated(n); })
-            .catch(function () { wrapEl.classList.remove("locked"); paint(row.rating || 0); });
+          postUpdate(row, { rating: n, comment: row.ratingComment || "" })
+            .then(function () { row.rating = n; busy = false; if (onRated) onRated(n); })
+            .catch(function () { busy = false; paint(row.rating || 0); });
         });
         btns.push(b); wrapEl.appendChild(b);
       })(i);
     }
-    paint(current);
-    if (current > 0) wrapEl.classList.add("locked");
+    paint(row.rating || 0);
     return wrapEl;
   }
 
@@ -405,11 +406,14 @@
 
     var thanks = document.createElement("div");
     thanks.className = "rate-thanks";
+    var rated = false;
 
     card.appendChild(starRow(row, false, function (n) {
+      thanks.textContent = "Saved — tap the stars again if you want to change it.";
+      if (rated) return;
+      rated = true;
       card.classList.add("done");
       s.style.display = "none";
-      thanks.textContent = "Thank you! Saved.";
       card.appendChild(thanks);
       cmtRow.classList.add("visible");
       card.appendChild(cmtRow);
@@ -440,13 +444,14 @@
 
   function renderHistorySection() {
     histzone.innerHTML = "";
+    if (!state || state.status === "submitted") return;
     var all = dedupHistory(dishHistory, state ? state.weekLabel : "");
     if (!all.length) return;
 
     var tog = document.createElement("div");
     tog.className = "hist-toggle" + (histOpen ? " open" : "");
     tog.id = "histtoggle";
-    tog.innerHTML = '<span class="ic">🍽️</span><span class="tx"><b>Have it again</b><small>' + all.length + ' dishes you’ve had before — tap to request a repeat</small></span><span class="chev">▼</span>';
+    tog.innerHTML = '<span class="ic">🍽️</span><span class="tx"><b>Have it again</b><small>' + all.length + ' dishes you’ve had before — tap to add one to this week</small></span><span class="chev">▼</span>';
     tog.addEventListener("click", function () { histOpen = !histOpen; renderHistorySection(); });
     histzone.appendChild(tog);
 
@@ -494,44 +499,68 @@
     histzone.appendChild(body);
   }
 
+  // Find this dish in the current selection (added from history as a repeat)
+  function findRepeat(title) {
+    for (var i = 0; i < state.menu.length; i++) {
+      if (state.menu[i].repeat && state.menu[i].title === title) return state.menu[i];
+    }
+    return null;
+  }
+
+  // History cards work exactly like menu dishes: tap to select for THIS week.
   function histCard(row) {
+    var existing = findRepeat(row.title);
+    var isSel = !!(existing && existing.selected);
+
     var card = document.createElement("div");
-    card.className = "hist-card" + (row.requested ? " requested" : "");
+    card.className = "hist-card" + (isSel ? " requested" : "");
 
+    var top = document.createElement("div");
+    top.className = "dish-top";
+    var box = document.createElement("div"); box.className = "box"; box.innerHTML = CHECK;
+    if (isSel) box.style.background = "var(--clay)", box.style.borderColor = "var(--clay)", box.querySelector("svg").style.opacity = "1";
+    var txt = document.createElement("div");
     var t = document.createElement("div"); t.className = "hist-title"; t.textContent = row.title;
-    card.appendChild(t);
-
+    txt.appendChild(t);
     var metaEl = document.createElement("div");
     metaEl.className = "hist-meta";
-    var metaTxt = row.weekLabel || "";
-    metaEl.textContent = metaTxt;
-    card.appendChild(metaEl);
+    metaEl.textContent = "You had this " + (row.weekLabel ? row.weekLabel.toLowerCase().replace("week of", "the week of") : "before");
+    txt.appendChild(metaEl);
+    top.appendChild(box); top.appendChild(txt);
+    card.appendChild(top);
 
     var act = document.createElement("div");
     act.className = "hist-actions";
-
-    act.appendChild(starRow(row, true, function () { /* rated from history — nothing else to do */ }));
-
-    var pill = document.createElement("button");
-    pill.type = "button";
-    pill.className = "pill" + (row.requested ? " on" : "");
-    pill.textContent = row.requested ? "Requested ✓" : "Have it again";
-    pill.addEventListener("click", function () {
-      if (row.requested) return;
-      pill.disabled = true;
-      postUpdate(row, { requestAgain: true })
-        .then(function () {
-          row.requested = true;
-          pill.disabled = false;
-          pill.classList.add("on");
-          pill.textContent = "Requested ✓";
-          card.classList.add("requested");
-        })
-        .catch(function () { pill.disabled = false; });
-    });
-    act.appendChild(pill);
-
+    act.appendChild(starRow(row, true, function () { /* rated from history */ }));
     card.appendChild(act);
+
+    var na = document.createElement("div");
+    na.className = "note-area";
+    na.style.display = isSel ? "block" : "none";
+    var ta = document.createElement("textarea");
+    ta.placeholder = "Any notes or requests for this dish? (optional)";
+    ta.value = (existing && existing.note) || "";
+    ta.addEventListener("input", function () { var it = findRepeat(row.title); if (it) it.note = ta.value; });
+    ta.addEventListener("click", function (e) { e.stopPropagation(); });
+    na.appendChild(ta);
+    card.appendChild(na);
+
+    card.addEventListener("click", function () {
+      var it = findRepeat(row.title);
+      if (it && it.selected) {
+        state.menu.splice(state.menu.indexOf(it), 1);
+        card.classList.remove("requested");
+        box.style.background = ""; box.style.borderColor = ""; box.querySelector("svg").style.opacity = "0";
+        na.style.display = "none";
+      } else {
+        state.menu.push({ title: row.title, desc: row.desc || "", selected: true, note: ta.value || "", repeat: true });
+        card.classList.add("requested");
+        box.style.background = "var(--clay)"; box.style.borderColor = "var(--clay)"; box.querySelector("svg").style.opacity = "1";
+        na.style.display = "block";
+      }
+      updateBar();
+    });
+
     return card;
   }
 
@@ -569,6 +598,7 @@
 
     var dishes = document.getElementById("dishes");
     state.menu.forEach(function (d) {
+      if (d.repeat) return; // repeats live in the "Have it again" section
       var card = document.createElement("div");
       card.className = "dish" + (d.selected ? " sel" : "");
 
@@ -619,6 +649,8 @@
     document.getElementById("editlink").addEventListener("click", function () {
       state.status = "pending";
       renderMenu();
+      renderRatePrompt();
+      renderHistorySection();
     });
   }
 
@@ -637,7 +669,10 @@
       .then(function () {
         state.status = "submitted";
         submitbtn.textContent = "Submit selections";
+        ratezone.innerHTML = "";  // clean confirmation screen
+        histzone.innerHTML = "";
         renderThanks(false);
+        window.scrollTo(0, 0);
       })
       .catch(function () {
         submitbtn.disabled = false;
