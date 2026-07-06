@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build 2026-07-05.3 : editable stars, repeats select into this week, clean post-submit -->
+<!-- build 2026-07-05.4 : repeat dishes pre-fill last time's note -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -539,7 +539,8 @@
     na.style.display = isSel ? "block" : "none";
     var ta = document.createElement("textarea");
     ta.placeholder = "Any notes or requests for this dish? (optional)";
-    ta.value = (existing && existing.note) || "";
+    // Pre-fill with the note they left the last time they had this dish (still editable)
+    ta.value = (existing && existing.note) || row.note || "";
     ta.addEventListener("input", function () { var it = findRepeat(row.title); if (it) it.note = ta.value; });
     ta.addEventListener("click", function (e) { e.stopPropagation(); });
     na.appendChild(ta);
