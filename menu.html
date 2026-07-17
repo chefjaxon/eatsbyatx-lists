@@ -395,7 +395,7 @@
     if (rest > 0 && state && state.status !== "submitted") {
       var more = document.createElement("div");
       more.className = "rate-more";
-      more.innerHTML = '<span>You have ' + rest + ' more unrated meal' + (rest > 1 ? 's' : '') + ' — find them in "Have it again" below</span>';
+      more.innerHTML = '<span>You have ' + rest + ' more unrated meal' + (rest > 1 ? 's' : '') + ' — find them in "Have it again" above</span>';
       more.querySelector("span").addEventListener("click", openHistory);
       ratezone.appendChild(more);
     }
