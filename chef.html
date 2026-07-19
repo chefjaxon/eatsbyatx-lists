@@ -246,7 +246,20 @@
           var v = document.createElement("span"); v.textContent = val;
           r.appendChild(l); r.appendChild(v); info.appendChild(r);
         }
-        row("Address:", cb.address);
+        if (cb.address) {
+          var ar = document.createElement("div"); ar.className = "row";
+          var al = document.createElement("span"); al.className = "lbl"; al.textContent = "Address:";
+          var av = document.createElement("a");
+          av.textContent = cb.address;
+          av.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(cb.address);
+          av.target = "_blank";
+          av.rel = "noopener";
+          av.style.color = "inherit";
+          av.style.textDecoration = "underline";
+          av.style.textDecorationColor = "rgba(0,0,0,.3)";
+          av.style.textUnderlineOffset = "3px";
+          ar.appendChild(al); ar.appendChild(av); info.appendChild(ar);
+        }
         if (cb.access) {
           var a = document.createElement("div");
           a.className = "access-row";
