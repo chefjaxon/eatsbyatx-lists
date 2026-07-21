@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build 2026-07-06.8 : menu first, ratings below, unrated persists after submit -->
+<!-- build 2026-07-20.1 : larger star tap targets + two-tap confirm on 1-2 star ratings -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -80,10 +80,12 @@
   .rate-card.done { background: var(--card); border-color: var(--line); }
   .rate-title { font-family: Georgia, serif; font-size: 16px; font-weight: 600; line-height: 1.35; }
   .rate-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
-  .stars { display: flex; gap: 6px; margin-top: 10px; }
-  .star { font-size: 27px; line-height: 1; color: #d8cfc0; cursor: pointer; background: none; border: none; padding: 2px 3px; }
+  .stars { display: flex; gap: 8px; margin-top: 10px; }
+  .star { font-size: 27px; line-height: 1; color: #d8cfc0; cursor: pointer; background: none; border: none; padding: 8px 6px; margin: -6px 0; }
   .star.on { color: var(--gold); }
+  .star.pending { color: #c9a96a; opacity: 0.75; }
   .stars.locked .star { cursor: default; }
+  .star-hint { font-size: 13px; color: #a06a3a; margin-top: 4px; min-height: 0; }
   .rate-thanks { font-size: 13px; color: var(--sage-deep); font-weight: 600; margin-top: 8px; }
   .cmt-row { display: none; margin-top: 10px; gap: 8px; }
   .cmt-row.visible { display: flex; }
@@ -344,12 +346,34 @@
   /* ================= RATE LAST WEEK ================= */
 
   // Stars are always editable — tapping a new value re-saves over the old one.
+  // Low ratings (1-2 stars) require a second tap to confirm, so stray taps
+  // while scrolling can't save an accidental 1-star.
   function starRow(row, mini, onRated) {
+    var outer = document.createElement("div");
     var wrapEl = document.createElement("div");
     wrapEl.className = "stars" + (mini ? " mini-stars" : "");
-    var busy = false;
+    var hint = document.createElement("div");
+    hint.className = "star-hint";
+    var busy = false, pending = 0, pendingTimer = null;
     var btns = [];
-    function paint(n) { for (var i = 0; i < 5; i++) btns[i].classList.toggle("on", i < n); }
+    function paint(n) {
+      for (var i = 0; i < 5; i++) {
+        btns[i].classList.toggle("on", i < n && !pending);
+        btns[i].classList.toggle("pending", pending > 0 && i < pending);
+      }
+    }
+    function clearPending() {
+      pending = 0;
+      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+      hint.textContent = "";
+    }
+    function save(n) {
+      busy = true;
+      paint(n);
+      postUpdate(row, { rating: n, comment: row.ratingComment || "" })
+        .then(function () { row.rating = n; busy = false; if (onRated) onRated(n); })
+        .catch(function () { busy = false; paint(row.rating || 0); });
+    }
     for (var i = 1; i <= 5; i++) {
       (function (n) {
         var b = document.createElement("button");
@@ -357,18 +381,27 @@
         b.setAttribute("aria-label", n + " star" + (n > 1 ? "s" : ""));
         b.addEventListener("click", function (e) {
           e.stopPropagation();
-          if (busy || row.rating === n) return;
-          busy = true;
-          paint(n);
-          postUpdate(row, { rating: n, comment: row.ratingComment || "" })
-            .then(function () { row.rating = n; busy = false; if (onRated) onRated(n); })
-            .catch(function () { busy = false; paint(row.rating || 0); });
+          if (busy) return;
+          if (n <= 2 && pending !== n) {
+            // First tap on a low rating: preview it and ask for a confirming tap
+            pending = n;
+            paint(row.rating || 0);
+            hint.textContent = "Tap again to confirm " + n + " star" + (n > 1 ? "s" : "");
+            if (pendingTimer) clearTimeout(pendingTimer);
+            pendingTimer = setTimeout(function () { clearPending(); paint(row.rating || 0); }, 5000);
+            return;
+          }
+          if (row.rating === n && !pending) return;
+          clearPending();
+          save(n);
         });
         btns.push(b); wrapEl.appendChild(b);
       })(i);
     }
     paint(row.rating || 0);
-    return wrapEl;
+    outer.appendChild(wrapEl);
+    outer.appendChild(hint);
+    return outer;
   }
 
   function renderRatePrompt() {
