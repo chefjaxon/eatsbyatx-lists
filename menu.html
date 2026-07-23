@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build 2026-07-20.1 : larger star tap targets + two-tap confirm on 1-2 star ratings -->
+<!-- build 2026-07-23.1 : weekly ratings now stage locally and save via single Submit button (history mini-stars unchanged) -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -86,6 +86,9 @@
   .star.pending { color: #c9a96a; opacity: 0.75; }
   .stars.locked .star { cursor: default; }
   .star-hint { font-size: 13px; color: #a06a3a; margin-top: 4px; min-height: 0; }
+  .rate-submit { display: block; width: calc(100% - 44px); margin: 14px 22px 0; background: var(--clay); color: #fff; border: none; border-radius: 12px; padding: 13px 16px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .rate-submit:disabled { opacity: 0.6; cursor: default; }
+  .rate-submit-hint { text-align: center; font-size: 13px; color: var(--muted); margin: 8px 22px 0; }
   .rate-thanks { font-size: 13px; color: var(--sage-deep); font-weight: 600; margin-top: 8px; }
   .cmt-row { display: none; margin-top: 10px; gap: 8px; }
   .cmt-row.visible { display: flex; }
@@ -425,6 +428,39 @@
     batch.forEach(function (row) { wrapEl.appendChild(rateCard(row)); });
     ratezone.appendChild(wrapEl);
 
+    // One submit for the whole batch — star taps alone never save anything.
+    var submit = document.createElement("button");
+    submit.type = "button"; submit.className = "rate-submit"; submit.textContent = "Submit ratings";
+    var subHint = document.createElement("div");
+    subHint.className = "rate-submit-hint";
+    subHint.textContent = "Nothing is saved until you submit";
+    submit.addEventListener("click", function () {
+      var staged = batch.filter(function (r) { return (r._staged || 0) > 0; });
+      if (!staged.length) { subHint.textContent = "Tap some stars first, then submit"; return; }
+      submit.disabled = true; submit.textContent = "Submitting\u2026";
+      Promise.all(staged.map(function (r) {
+        return postUpdate(r, { rating: r._staged, comment: (r._stagedComment || r.ratingComment || "").trim() });
+      }))
+        .then(function () {
+          staged.forEach(function (r) {
+            r.rating = r._staged;
+            if (r._stagedComment !== undefined) r.ratingComment = r._stagedComment.trim();
+          });
+          var done = document.createElement("div");
+          done.className = "rate-card done";
+          done.style.margin = "14px 22px 0";
+          done.innerHTML = '<div class="rate-title">Thank you!</div><div class="rate-sub">Your ratings are in \u2014 they shape your future menus.</div>';
+          wrapEl.innerHTML = ""; wrapEl.appendChild(done);
+          submit.remove(); subHint.remove();
+        })
+        .catch(function () {
+          submit.disabled = false; submit.textContent = "Try again";
+          subHint.textContent = "That didn't go through \u2014 give it another tap";
+        });
+    });
+    ratezone.appendChild(submit);
+    ratezone.appendChild(subHint);
+
     if (rest > 0 && state && state.status !== "submitted") {
       var more = document.createElement("div");
       more.className = "rate-more";
@@ -506,6 +542,8 @@
     return card;
   }
 
+  // Staged rating card: taps only highlight stars locally. Nothing is sent
+  // until the single "Submit ratings" button at the bottom of the section.
   function rateCard(row) {
     var card = document.createElement("div");
     card.className = "rate-card";
@@ -515,37 +553,38 @@
     var s = document.createElement("div"); s.className = "rate-sub"; s.textContent = "Tap to rate — it helps us build your future menus";
     card.appendChild(s);
 
+    var wrapEl = document.createElement("div");
+    wrapEl.className = "stars";
+    var btns = [];
+    function paint(n) { for (var i = 0; i < 5; i++) btns[i].classList.toggle("on", i < n); }
+    for (var i = 1; i <= 5; i++) {
+      (function (n) {
+        var b = document.createElement("button");
+        b.className = "star"; b.type = "button"; b.textContent = "★";
+        b.setAttribute("aria-label", n + " star" + (n > 1 ? "s" : ""));
+        b.addEventListener("click", function (e) {
+          e.stopPropagation();
+          row._staged = (row._staged === n) ? 0 : n; // tap same star again to clear
+          paint(row._staged);
+          cmtRow.classList.toggle("visible", row._staged > 0);
+        });
+        btns.push(b); wrapEl.appendChild(b);
+      })(i);
+    }
+    paint(row._staged || row.rating || 0);
+    if (row.rating && !row._staged) row._staged = row.rating;
+    card.appendChild(wrapEl);
+
     var cmtRow = document.createElement("div");
     cmtRow.className = "cmt-row";
+    if (row._staged > 0) cmtRow.classList.add("visible");
     var inp = document.createElement("input");
     inp.placeholder = "Anything we should know? (optional)";
-    var sendBtn = document.createElement("button");
-    sendBtn.type = "button"; sendBtn.textContent = "Send";
-    cmtRow.appendChild(inp); cmtRow.appendChild(sendBtn);
-
-    var thanks = document.createElement("div");
-    thanks.className = "rate-thanks";
-    var rated = false;
-
-    card.appendChild(starRow(row, false, function (n) {
-      thanks.textContent = "Saved — tap the stars again if you want to change it.";
-      if (rated) return;
-      rated = true;
-      card.classList.add("done");
-      s.style.display = "none";
-      card.appendChild(thanks);
-      cmtRow.classList.add("visible");
-      card.appendChild(cmtRow);
-    }));
-
-    sendBtn.addEventListener("click", function () {
-      var c = inp.value.trim();
-      if (!c) { cmtRow.classList.remove("visible"); return; }
-      sendBtn.disabled = true; sendBtn.textContent = "…";
-      postUpdate(row, { rating: row.rating, comment: c })
-        .then(function () { row.ratingComment = c; cmtRow.classList.remove("visible"); thanks.textContent = "Thank you! Note saved."; })
-        .catch(function () { sendBtn.disabled = false; sendBtn.textContent = "Send"; });
-    });
+    inp.value = row._stagedComment || row.ratingComment || "";
+    inp.addEventListener("input", function () { row._stagedComment = inp.value; });
+    inp.addEventListener("click", function (e) { e.stopPropagation(); });
+    cmtRow.appendChild(inp);
+    card.appendChild(cmtRow);
 
     return card;
   }
