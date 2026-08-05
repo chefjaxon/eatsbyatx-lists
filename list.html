@@ -452,14 +452,12 @@
 
         qty.addEventListener("click", function (e) {
           e.stopPropagation();
-          if (it.have) { it.have = false; }
           if (step.classList.contains("open")) closeStepper(); else openStepper();
-          paint(); updateProgress(); queueSave();
         });
 
         row.addEventListener("click", function () {
           it.have = !it.have;
-          if (it.have) { it.haveQty = 0; it.haveNote = ""; closeStepper(); }
+          if (it.have) closeStepper();
           paint();
           updateProgress();
           queueSave();
