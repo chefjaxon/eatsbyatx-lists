@@ -149,6 +149,12 @@
     padding: 2px 9px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em;
     font-family: ui-sans-serif, -apple-system, sans-serif;
   }
+  .hp-chip {
+    display: inline-block; vertical-align: 2px; margin-left: 8px;
+    background: #e3ecdf; color: #4a6b46; border-radius: 999px;
+    padding: 2px 9px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em;
+    font-family: ui-sans-serif, -apple-system, sans-serif;
+  }
   .svc-row { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
   .svc-row .lbl { font-size: 14.5px; font-weight: 600; }
   .svc-send { margin-top: 12px; width: 100%; background: var(--sage); color: #fff; border: none; border-radius: 10px; padding: 12px; font-size: 14.5px; font-weight: 700; cursor: pointer; }
@@ -721,7 +727,7 @@
         box.style.background = ""; box.style.borderColor = ""; box.querySelector("svg").style.opacity = "0";
         na.style.display = "none";
       } else {
-        state.menu.push({ title: row.title, desc: row.desc || "", selected: true, note: ta.value || "", repeat: true, half: !!row.half });
+        state.menu.push({ title: row.title, desc: row.desc || "", selected: true, note: ta.value || "", repeat: true, half: !!row.half, highProtein: !!row.highProtein });
         card.classList.add("requested");
         box.style.background = "var(--clay)"; box.style.borderColor = "var(--clay)"; box.querySelector("svg").style.opacity = "1";
         na.style.display = "block";
@@ -781,6 +787,7 @@
       var txt = document.createElement("div");
       var t = document.createElement("div"); t.className = "dish-title"; t.textContent = d.title;
       if (d.half) { var hc = document.createElement("span"); hc.className = "half-chip"; hc.textContent = "½ meal"; t.appendChild(hc); }
+      if (d.highProtein) { var pc = document.createElement("span"); pc.className = "hp-chip"; pc.textContent = "High Protein"; t.appendChild(pc); }
       txt.appendChild(t);
       if (d.desc) { var ds = document.createElement("div"); ds.className = "dish-desc"; ds.textContent = d.desc; txt.appendChild(ds); }
       top.appendChild(box); top.appendChild(txt);
