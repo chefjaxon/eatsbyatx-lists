@@ -146,9 +146,10 @@
   .half-chip {
     display: inline-block; vertical-align: 2px; margin-left: 8px;
     background: #efe7d4; color: #8a6d3b; border-radius: 999px;
-    padding: 2px 9px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em;
-    font-family: ui-sans-serif, -apple-system, sans-serif;
+    padding: 2px 9px; font-size: 11.5px; font-weight: 500; letter-spacing: 0.02em;
+    font-family: ui-sans-serif, -apple-system, sans-serif; white-space: nowrap;
   }
+  .half-chip b { font-weight: 700; letter-spacing: 0.04em; }
   .hp-chip {
     display: inline-block; vertical-align: 2px; margin-left: 8px;
     background: #e3ecdf; color: #4a6b46; border-radius: 999px;
@@ -250,6 +251,7 @@
         id: (pg.id || "").replace(/-/g, ""),
         clientName: propText(pg, "Client Name"),
         half: !!(halfProp && halfProp.checkbox),
+        halfType: propText(pg, "Half Type"),
         title: propText(pg, "Dish"),
         desc: propText(pg, "Description"),
         note: propText(pg, "Client Note"),
@@ -692,7 +694,7 @@
     if (isSel) box.style.background = "var(--clay)", box.style.borderColor = "var(--clay)", box.querySelector("svg").style.opacity = "1";
     var txt = document.createElement("div");
     var t = document.createElement("div"); t.className = "hist-title"; t.textContent = row.title;
-    if (row.half) { var hc = document.createElement("span"); hc.className = "half-chip"; hc.textContent = "½ meal"; t.appendChild(hc); }
+    if (row.half) { t.appendChild(halfChip(row)); }
     txt.appendChild(t);
     if (row.desc) { var dEl = document.createElement("div"); dEl.className = "dish-desc"; dEl.textContent = row.desc; txt.appendChild(dEl); }
     var metaEl = document.createElement("div");
@@ -727,7 +729,7 @@
         box.style.background = ""; box.style.borderColor = ""; box.querySelector("svg").style.opacity = "0";
         na.style.display = "none";
       } else {
-        state.menu.push({ title: row.title, desc: row.desc || "", selected: true, note: ta.value || "", repeat: true, half: !!row.half, highProtein: !!row.highProtein });
+        state.menu.push({ title: row.title, desc: row.desc || "", selected: true, note: ta.value || "", repeat: true, half: !!row.half, halfType: row.halfType || "", highProtein: !!row.highProtein });
         card.classList.add("requested");
         box.style.background = "var(--clay)"; box.style.borderColor = "var(--clay)"; box.querySelector("svg").style.opacity = "1";
         na.style.display = "block";
@@ -739,6 +741,16 @@
   }
 
   /* ================= MENU (unchanged flow) ================= */
+
+  // Half-count items are named by their FORMAT (Snack / Side); the ½ is billing,
+  // shown as a footnote so it can't be misread as a half-size portion.
+  function halfChip(d) {
+    var kind = String((d && d.halfType) || "snack").trim().toLowerCase() === "side" ? "Side" : "Snack";
+    var hc = document.createElement("span");
+    hc.className = "half-chip";
+    hc.innerHTML = "<b>" + kind + "</b> · counts as ½";
+    return hc;
+  }
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -758,7 +770,7 @@
     var n = selUnits();
     var target = state.pickCount;
     if (target > 0) {
-      countEl.textContent = fmtUnits(n) + " selected · package includes " + target;
+      countEl.textContent = fmtUnits(n) + " of " + target + " meals";
     } else {
       countEl.textContent = fmtUnits(n) + " selected";
     }
@@ -769,8 +781,11 @@
   function renderMenu() {
     meta.textContent = state.clientName + " · " + state.weekLabel;
     var pkgText = state.pickCount > 0 ? " Your package includes " + state.pickCount + " meals this week, but feel free to select more if you’d like extras." : "";
+    var hasHalf = false;
+    state.menu.forEach(function (d) { if (d.half) hasHalf = true; });
+    var halfText = hasHalf ? " Snacks and sides are smaller dishes — they each count as half a meal toward your package." : "";
     var html = '';
-    html += '<div class="instruct"><b>Pick your meals</b> by tapping the dishes you want.' + pkgText + ' Add a note under any dish if there’s something you’d like adjusted or a question for us. Then hit submit — that’s it.</div>';
+    html += '<div class="instruct"><b>Pick your meals</b> by tapping the dishes you want.' + pkgText + halfText + ' Add a note under any dish if there’s something you’d like adjusted or a question for us. Then hit submit — that’s it.</div>';
     html += '<div id="dishes"></div>';
     html += '<div class="footer-note">Questions? Text us anytime — we’re happy to help.</div>';
     content.innerHTML = html;
@@ -786,7 +801,7 @@
       var box = document.createElement("div"); box.className = "box"; box.innerHTML = CHECK;
       var txt = document.createElement("div");
       var t = document.createElement("div"); t.className = "dish-title"; t.textContent = d.title;
-      if (d.half) { var hc = document.createElement("span"); hc.className = "half-chip"; hc.textContent = "½ meal"; t.appendChild(hc); }
+      if (d.half) { t.appendChild(halfChip(d)); }
       if (d.highProtein) { var pc = document.createElement("span"); pc.className = "hp-chip"; pc.textContent = "High Protein"; t.appendChild(pc); }
       txt.appendChild(t);
       if (d.desc) { var ds = document.createElement("div"); ds.className = "dish-desc"; ds.textContent = d.desc; txt.appendChild(ds); }
