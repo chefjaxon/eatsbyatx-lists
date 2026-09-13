@@ -22,6 +22,7 @@
     --rest-deep: #b54a32;
     --rest-ink: #7c3322;
     --ban-fill: #b3261e;
+    --chip-bg: #f6dcd6;
     --door-bg: #eef3f9;
     --door-line: #c9d8e8;
     --door-ink: #24425f;
@@ -33,7 +34,7 @@
     background: var(--paper);
     color: var(--ink);
     line-height: 1.5;
-    padding-bottom: 56px;
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
   }
   .wrap { max-width: 600px; margin: 0 auto; }
 
@@ -90,20 +91,18 @@
     border-radius: 0 0 12px 12px; margin: 0 16px; padding: 10px 12px 12px;
   }
   .rest-label { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; color: var(--rest-deep); margin: 2px 0 7px; }
-  .rest-label.neutral { color: var(--muted); }
-  .chips + .rest-label.neutral { margin-top: 12px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rest-label.also { color: var(--muted); margin-top: 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px 6px; }
   .chip {
-    background: var(--rest-bg); color: var(--rest-ink); border: 1px solid var(--rest-line);
-    border-radius: 8px; padding: 5px 10px; font-size: 13.5px; font-weight: 700; line-height: 1.35;
+    background: var(--chip-bg); color: var(--rest-ink);
+    border-radius: 7px; padding: 4px 9px; font-size: 13.5px; font-weight: 700; line-height: 1.35;
     max-width: 100%; overflow-wrap: anywhere;
   }
-  .rrows { display: flex; flex-direction: column; gap: 6px; }
+  .rrows { display: flex; flex-direction: column; gap: 4px; }
   .rrow {
-    background: var(--paper); border: 1px solid var(--line); border-left: 3px solid #b6b0a0;
-    border-radius: 8px; padding: 8px 11px; font-size: 14px; color: var(--ink); line-height: 1.45; overflow-wrap: anywhere;
+    border-left: 2px solid #cfc9b8; padding: 3px 10px;
+    font-size: 14px; color: var(--ink); line-height: 1.45; overflow-wrap: anywhere;
   }
-  .rest-spice { margin-top: 10px; font-size: 13.5px; font-weight: 600; color: var(--alert-ink); }
   .rest-empty { font-size: 13.5px; color: var(--muted); }
 
   .prefs {
@@ -366,19 +365,17 @@
         body.appendChild(cw);
       }
       if (rows.length) {
-        var rlbl = document.createElement("div"); rlbl.className = "rest-label neutral"; rlbl.textContent = "WITH CONDITIONS";
-        body.appendChild(rlbl);
+        if (chips.length) {
+          var rlbl = document.createElement("div"); rlbl.className = "rest-label also"; rlbl.textContent = "ALSO";
+          body.appendChild(rlbl);
+        }
         var rw = document.createElement("div"); rw.className = "rrows";
         rows.forEach(function (r) {
           var rr = document.createElement("div"); rr.className = "rrow"; rr.textContent = r; rw.appendChild(rr);
         });
         body.appendChild(rw);
       }
-      if (cb.spice) {
-        var sp = document.createElement("div"); sp.className = "rest-spice"; sp.textContent = "Spice: " + cb.spice;
-        body.appendChild(sp);
-      }
-      if (!chips.length && !rows.length && !cb.spice) {
+      if (!chips.length && !rows.length) {
         var em = document.createElement("div"); em.className = "rest-empty"; em.textContent = "No restrictions listed on this sheet";
         body.appendChild(em);
       }
