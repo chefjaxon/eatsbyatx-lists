@@ -230,6 +230,13 @@
     return out;
   }
 
+  // Placeholder entries some sheets carry instead of an empty list. Rendered as a plain muted
+  // line rather than a red chip: a placeholder styled as a ban is worse than no styling.
+  var PLACEHOLDER = /^(none( on file| listed| noted| known)?|n\/?a|n\.a\.|no (known |dietary )?restrictions( on file)?)[.!]?$/;
+  function isPlaceholder(entry) {
+    return PLACEHOLDER.test(entry.toLowerCase().replace(/\s+/g, " ").trim());
+  }
+
   // allergyLine is a single string starting with \uD83D\uDD34 (red), \u2713 (confirmed) or \u26A0 (warning).
   // Anything unrecognised is shown as-is at warning weight; a missing line is never treated as confirmed.
   function allergyTier(line) {
@@ -353,8 +360,11 @@
       // Every restriction renders, one element per entry: short ones as chips, long ones as rows.
       var body = document.createElement("div");
       body.className = "rest-body";
-      var chips = [], rows = [];
-      restrictionList(cb.restrictions).forEach(function (r) { (r.length <= CHIP_MAX ? chips : rows).push(r); });
+      var chips = [], rows = [], notes = [];
+      restrictionList(cb.restrictions).forEach(function (r) {
+        if (isPlaceholder(r)) notes.push(r);
+        else (r.length <= CHIP_MAX ? chips : rows).push(r);
+      });
       if (chips.length) {
         var cl = document.createElement("div"); cl.className = "rest-label"; cl.textContent = "\uD83D\uDEAB NEVER USE";
         body.appendChild(cl);
@@ -375,7 +385,10 @@
         });
         body.appendChild(rw);
       }
-      if (!chips.length && !rows.length) {
+      notes.forEach(function (r) {
+        var n = document.createElement("div"); n.className = "rest-empty"; n.textContent = r; body.appendChild(n);
+      });
+      if (!chips.length && !rows.length && !notes.length) {
         var em = document.createElement("div"); em.className = "rest-empty"; em.textContent = "No restrictions listed on this sheet";
         body.appendChild(em);
       }
