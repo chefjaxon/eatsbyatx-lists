@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Weekly Grocery List · EatsByATX</title>
+<style>
+  :root {
+    --ink: #1f1d1a;
+    --paper: #f7f4ed;
+    --card: #fffdf8;
+    --line: #e4ddcd;
+    --sage: #5c6b54;
+    --sage-deep: #44503e;
+    --clay: #c2683f;
+    --muted: #8a8475;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.5;
+    padding-bottom: 72px;
+  }
+  .wrap { max-width: 540px; margin: 0 auto; }
+
+  header {
+    padding: 28px 22px 20px;
+    border-bottom: 1px solid var(--line);
+    background: var(--card);
+  }
+  .brand {
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--clay);
+    font-weight: 700;
+  }
+  h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 27px;
+    font-weight: 600;
+    margin-top: 8px;
+    letter-spacing: -0.01em;
+  }
+  .meta { color: var(--muted); font-size: 14.5px; margin-top: 6px; }
+  .shop-info {
+    margin: 18px 22px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .shop-store {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #f6ece5;
+    border: 1px solid #e3c8b8;
+    border-radius: 12px;
+    padding: 13px 15px;
+  }
+  .shop-store .ico { flex: 0 0 18px; margin-top: 1px; }
+  .shop-store .ico svg { width: 18px; height: 18px; }
+  .shop-store .txt { font-size: 15px; color: var(--ink); line-height: 1.4; }
+  .shop-store .txt .lbl {
+    display: block;
+    font-size: 11.5px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--clay);
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .shop-store .txt b { font-weight: 600; }
+  .shop-organic {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 2px 0;
+    font-size: 14px;
+    color: var(--sage-deep);
+  }
+  .shop-organic .lbl {
+    font-size: 11.5px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .shop-organic .val {
+    font-weight: 600;
+    color: var(--sage-deep);
+  }
+  .instruct {
+    margin: 18px 22px 6px;
+    background: #eef0e8;
+    border: 1px solid #d8ddcb;
+    border-radius: 12px;
+    padding: 13px 15px;
+    font-size: 14.5px;
+    color: var(--sage-deep);
+  }
+  .state-msg {
+    margin: 40px 22px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .progress-bar {
+    margin: 16px 22px 4px;
+    height: 7px;
+    background: #e8e2d4;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0;
+    background: var(--sage);
+    border-radius: 99px;
+    transition: width 0.35s ease;
+  }
+  .progress-label { margin: 7px 22px 0; font-size: 13px; color: var(--muted); }
+
+  .cat { margin: 26px 22px 0; }
+  .cat-head {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    padding-bottom: 9px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 4px;
+  }
+  .cat-head h2 {
+    font-size: 13px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .cat-count { font-size: 12.5px; color: var(--muted); margin-left: auto; }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    user-select: none;
+  }
+  .item:last-child { border-bottom: none; }
+  .box {
+    flex: 0 0 24px;
+    height: 24px;
+    border: 2px solid #bcb6a4;
+    border-radius: 7px;
+    display: grid;
+    place-items: center;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .box svg { width: 15px; height: 15px; opacity: 0; transition: opacity 0.15s; }
+  .item.have .box { background: var(--sage); border-color: var(--sage); }
+  .item.have .box svg { opacity: 1; }
+  .name { font-size: 16px; flex: 1; transition: color 0.15s; }
+  .qty {
+    font-size: 14px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    border-bottom: 1px dashed #c9c3b2;
+    padding: 6px 2px;
+    margin: -6px -2px;
+  }
+  .item.have .name { color: var(--muted); text-decoration: line-through; text-decoration-color: #c9c3b2; }
+  .item.have .qty { color: #bcb6a4; border-bottom-color: transparent; }
+
+  /* Partial (has some, not all) */
+  .item.partial .box { background: #fdf6ec; border-color: var(--clay); }
+  .item.partial .box svg { opacity: 0; }
+  .item.partial .box::after {
+    content: "";
+    width: 11px; height: 3px;
+    border-radius: 99px;
+    background: var(--clay);
+  }
+  .item.partial .qty { color: var(--clay); font-weight: 600; border-bottom-color: transparent; }
+
+  .stepper {
+    display: none;
+    padding: 4px 4px 16px 42px;
+    border-bottom: 1px solid var(--line);
+  }
+  .stepper.open { display: block; }
+  .stepper .q { font-size: 13.5px; color: var(--muted); margin-bottom: 9px; }
+  .step-row { display: flex; align-items: center; gap: 14px; }
+  .step-btn {
+    width: 40px; height: 40px;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    font-size: 22px;
+    line-height: 1;
+    color: var(--sage-deep);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+  }
+  .step-btn:active { background: #eef0e8; }
+  .step-val { font-size: 17px; font-weight: 600; min-width: 28px; text-align: center; font-variant-numeric: tabular-nums; }
+  .step-done {
+    margin-left: auto;
+    border: none;
+    background: var(--sage);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .note-input {
+    width: 100%;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 15px;
+    font-family: inherit;
+    background: var(--card);
+    color: var(--ink);
+  }
+  .note-input:focus { outline: none; border-color: var(--sage); }
+  .note-row { display: flex; gap: 10px; align-items: center; }
+
+  .audit {
+    padding: 2px 4px 11px 42px;
+    font-size: 12px;
+    line-height: 1.55;
+    color: #9a9384;
+  }
+  .audit div { font-variant-numeric: tabular-nums; }
+  .audit-banner {
+    margin: 16px 22px 0;
+    background: #efece2;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .footer-note {
+    margin: 30px 22px 0;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .savebar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--card);
+    border-top: 1px solid var(--line);
+    padding: 12px 22px calc(12px + env(safe-area-inset-bottom));
+    display: none;
+  }
+  .savebar.visible { display: block; }
+  .savebar .inner { max-width: 540px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+  .save-status { font-size: 13.5px; color: var(--sage); flex: 1; display: flex; align-items: center; gap: 7px; }
+  .save-status.err { color: #a04428; }
+  .dot { width: 8px; height: 8px; border-radius: 99px; background: currentColor; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">EatsByATX</div>
+    <h1>Your weekly grocery list</h1>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <div id="content">
+    <div class="state-msg" id="loading">Loading your list&hellip;</div>
+  </div>
+</div>
+
+<div class="savebar" id="savebar">
+  <div class="inner">
+    <div class="save-status" id="savestatus"><span class="dot"></span><span id="savetxt">All changes saved</span></div>
+  </div>
+</div>
+
+<script>
+  var GET_URL  = "https://hook.us2.make.com/3h2ft9tpkjghlvf63u4vrj55cwu0pava";
+  var SAVE_URL = "https://hook.us2.make.com/d9atqksjqpqvu7dijp3kxgbl3hookhdx";
+
+  var params = new URLSearchParams(location.search);
+  var key = params.get("key");
+  var state = null;   // { clientName, serviceDay, items: [{cat, items:[{name, qty, have}]}] }
+  var dirty = false;
+  var saveTimer = null;
+
+  var content = document.getElementById("content");
+  var meta = document.getElementById("meta");
+  var savebar = document.getElementById("savebar");
+  var savetxt = document.getElementById("savetxt");
+  var savestatus = document.getElementById("savestatus");
+
+  // --- Silent change log -------------------------------------------------
+  // Records who touched each item. Nothing here is shown to chefs or clients
+  // unless the private ?audit=1 view is requested.
+  var LOG_MAX = 20;
+  var ACTOR_STORE_KEY = "ebatx_actor";
+  var AUDIT = params.get("audit") === "1";
+
+  var actor = (function () {
+    var by = (params.get("by") || "").toLowerCase().trim();
+    try {
+      if (by) localStorage.setItem(ACTOR_STORE_KEY, by);
+      else by = (localStorage.getItem(ACTOR_STORE_KEY) || "").toLowerCase().trim();
+    } catch (e) { /* private mode / storage disabled */ }
+    return by || "client";
+  })();
+
+  function logChange(it, action, detail) {
+    if (!it) return;
+    if (!Array.isArray(it.log)) it.log = [];
+    var entry = { by: actor, at: new Date().toISOString(), action: action };
+    if (detail !== undefined && detail !== null && detail !== "") entry.detail = detail;
+    it.log.push(entry);
+    if (it.log.length > LOG_MAX) it.log = it.log.slice(-LOG_MAX);
+  }
+
+  function logId(e) {
+    return String(e.at) + "|" + String(e.by) + "|" + String(e.action) + "|" +
+      (e.detail === undefined || e.detail === null ? "" : String(e.detail));
+  }
+
+  // Fold the log we already hold into a freshly fetched copy so a poll can
+  // never drop an entry. Only `log` is merged \u2014 have/haveQty/haveNote always
+  // come from the server copy, so a chef or client edit is never overwritten.
+  function mergeLogs(fresh, local) {
+    var addedLocal = false;
+    var byName = {};
+    (local || []).forEach(function (g) {
+      (g.items || []).forEach(function (it) { byName[g.cat + "\u0000" + it.name] = it; });
+    });
+    (fresh || []).forEach(function (g) {
+      (g.items || []).forEach(function (it) {
+        var prev = byName[g.cat + "\u0000" + it.name];
+        var mine = (prev && Array.isArray(prev.log)) ? prev.log : [];
+        var theirs = Array.isArray(it.log) ? it.log : [];
+        if (!mine.length && !theirs.length) return;
+        var seen = {}, out = [];
+        theirs.concat(mine).forEach(function (e) {
+          if (!e || !e.at) return;
+          var id = logId(e);
+          if (seen[id]) return;
+          seen[id] = 1;
+          out.push(e);
+        });
+        out.sort(function (a, b) { return a.at < b.at ? -1 : (a.at > b.at ? 1 : 0); });
+        if (out.length > LOG_MAX) out = out.slice(-LOG_MAX);
+        if (out.length !== theirs.length) addedLocal = true;
+        it.log = out;
+      });
+    });
+    return addedLocal;
+  }
+
+  var AUDIT_TIME = null;
+  function fmtAt(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso == null ? "" : iso);
+    try {
+      if (!AUDIT_TIME) AUDIT_TIME = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit"
+      });
+      return AUDIT_TIME.format(d).replace(",", "");
+    } catch (e) { return d.toISOString(); }
+  }
+
+  // Note-log debouncers for the steppers currently on screen.
+  var noteFlushers = [];
+  function flushNoteLogs() {
+    noteFlushers.slice().forEach(function (f) { f(); });
+  }
+  window.addEventListener("pagehide", flushNoteLogs);
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) flushNoteLogs();
+  });
+  // -----------------------------------------------------------------------
+
+  var CHECK = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function showMessage(html) {
+    content.innerHTML = '<div class="state-msg">' + html + '</div>';
+  }
+
+  function load() {
+    if (!key) {
+      showMessage("This link is missing its list code.<br>Please use the exact link we texted you, or reach out and we'll resend it.");
+      return;
+    }
+    fetch(GET_URL + "?key=" + encodeURIComponent(key))
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (data) {
+        if (!data || !data.items) throw new Error("empty");
+        state = {
+          clientName: data.clientName || "",
+          serviceDay: data.serviceDay || "",
+          store: data.store || "",
+          organicPriority: data.organicPriority || "",
+          items: typeof data.items === "string" ? JSON.parse(data.items) : data.items
+        };
+        render();
+      })
+      .catch(function () {
+        showMessage("We couldn't load your list right now.<br>Give it a moment and refresh &mdash; or text us and we'll sort it out.");
+      });
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  var STORE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="#c2683f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v3a3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1-3 3 3 3 0 0 1-3-3V9z"/><path d="M5 15v5h14v-5"/></svg>';
+
+  function shopInfoHtml() {
+    var rows = '';
+    // Store callout always shows; defaults to HEB when no preference is set.
+    var store = (state.store && state.store.trim()) ? state.store.trim() : "HEB";
+    rows += '<div class="shop-store">'
+      + '<span class="ico">' + STORE_ICON + '</span>'
+      + '<span class="txt"><span class="lbl">Shop at</span><b>' + esc(store) + '</b></span>'
+      + '</div>';
+    // Organic priority shows for every client.
+    var organic = (state.organicPriority && state.organicPriority.trim()) ? state.organicPriority : "Not specified";
+    rows += '<div class="shop-organic"><span class="lbl">Organic priority</span><span class="val">'
+      + esc(organic) + '</span></div>';
+    return '<div class="shop-info">' + rows + '</div>';
+  }
+
+  function render() {
+    meta.textContent = state.clientName + " \u00B7 Service day: " + state.serviceDay;
+    var html = '';
+    if (AUDIT) html += '<div class="audit-banner">Audit view</div>';
+    html += shopInfoHtml();
+    html += '<div class="instruct">Tap anything you <b>already have</b> at home to check it off. Only have some of it? <b>Tap the quantity</b> to tell us how much. Your chef shops the rest. Changes save automatically.</div>';
+    html += '<div class="progress-bar"><div class="progress-fill" id="fill"></div></div>';
+    html += '<div class="progress-label" id="plabel"></div>';
+    html += '<div id="list"></div>';
+    html += '<div class="footer-note">Updates save automatically \u00B7 Your chef sees this same list<br>Questions? Text us anytime.</div>';
+    content.innerHTML = html;
+
+    var list = document.getElementById("list");
+    noteFlushers = [];
+    state.items.forEach(function (group, gi) {
+      var sec = document.createElement("div");
+      sec.className = "cat";
+      var head = document.createElement("div");
+      head.className = "cat-head";
+      head.innerHTML = "<h2></h2><span class='cat-count'>" + group.items.length + " items</span>";
+      head.querySelector("h2").textContent = group.cat;
+      sec.appendChild(head);
+      group.items.forEach(function (it, ii) {
+        var row = document.createElement("div");
+        row.className = "item";
+        var box = document.createElement("div"); box.className = "box"; box.innerHTML = CHECK;
+        var name = document.createElement("div"); name.className = "name"; name.textContent = it.name;
+        var qty = document.createElement("div"); qty.className = "qty";
+        row.appendChild(box); row.appendChild(name); row.appendChild(qty);
+
+        var step = document.createElement("div");
+        step.className = "stepper";
+
+        var audit = null;
+        if (AUDIT) { audit = document.createElement("div"); audit.className = "audit"; }
+
+        var noteLogTimer = null, noteLogPending = false;
+        function flushNoteLog() {
+          if (!noteLogPending) return;
+          noteLogPending = false;
+          clearTimeout(noteLogTimer); noteLogTimer = null;
+          logChange(it, "note", it.haveNote || "");
+          paintAudit();
+          queueSave();
+        }
+        function queueNoteLog() {
+          noteLogPending = true;
+          clearTimeout(noteLogTimer);
+          noteLogTimer = setTimeout(flushNoteLog, 900);
+        }
+        noteFlushers.push(flushNoteLog);
+
+        function paintAudit() {
+          if (!audit) return;
+          var log = Array.isArray(it.log) ? it.log : [];
+          if (!log.length) { audit.innerHTML = ''; return; }
+          audit.innerHTML = log.map(function (e) {
+            var bits = [e.by || "?", e.action || "?"];
+            if (e.detail !== undefined && e.detail !== null && e.detail !== "") bits.push(e.detail);
+            bits.push(fmtAt(e.at));
+            return '<div>' + esc(bits.join(" \u00B7 ")) + '</div>';
+          }).join("");
+        }
+
+        function isPartial() {
+          return !it.have && ((it.haveQty && it.haveQty > 0) || (it.haveNote && it.haveNote.trim()));
+        }
+
+        function paint() {
+          row.classList.toggle("have", !!it.have);
+          row.classList.toggle("partial", isPartial());
+          var c = parseCount(it.qty);
+          if (isPartial()) {
+            if (c && it.haveQty) {
+              qty.textContent = "have " + it.haveQty + " \u00B7 buy " + Math.max(c.num - it.haveQty, 0) + (c.rest ? " " + c.rest : "");
+            } else if (it.haveNote) {
+              qty.textContent = it.qty + " \u00B7 have " + it.haveNote;
+            } else {
+              qty.textContent = it.qty;
+            }
+          } else {
+            qty.textContent = it.qty;
+          }
+          paintAudit();
+        }
+
+        function buildStepper() {
+          var c = parseCount(it.qty);
+          if (c) {
+            step.innerHTML = '<div class="q">How many do you already have at home?</div>'
+              + '<div class="step-row">'
+              + '<button class="step-btn" type="button" data-a="-">\u2212</button>'
+              + '<span class="step-val"></span>'
+              + '<button class="step-btn" type="button" data-a="+">+</button>'
+              + '<button class="step-done" type="button">Done</button>'
+              + '</div>';
+            var val = step.querySelector(".step-val");
+            function sync() { val.textContent = String(it.haveQty || 0); paint(); updateProgress(); }
+            step.querySelectorAll(".step-btn").forEach(function (b) {
+              b.addEventListener("click", function (e) {
+                e.stopPropagation();
+                var prevQty = it.haveQty || 0;
+                var prevHave = !!it.have;
+                var n = prevQty;
+                n += (b.getAttribute("data-a") === "+") ? 1 : -1;
+                n = Math.max(0, Math.min(c.num, n));
+                var changed = (n !== prevQty);
+                it.haveQty = n;
+                if (n >= c.num) { it.have = true; it.haveQty = 0; closeStepper(); }
+                else { it.have = false; }
+                if (changed) logChange(it, "qty", n);
+                if (!!it.have !== prevHave) logChange(it, it.have ? "checked" : "unchecked");
+                sync();
+                queueSave();
+              });
+            });
+            step.querySelector(".step-done").addEventListener("click", function (e) {
+              e.stopPropagation();
+              closeStepper();
+            });
+            sync();
+          } else {
+            step.innerHTML = '<div class="q">About how much do you already have? (e.g. "half a bag", "about 1 cup")</div>'
+              + '<div class="note-row">'
+              + '<input class="note-input" type="text" maxlength="60" placeholder="How much you have">'
+              + '<button class="step-done" type="button">Done</button>'
+              + '</div>';
+            var inp = step.querySelector(".note-input");
+            inp.value = it.haveNote || "";
+            inp.addEventListener("click", function (e) { e.stopPropagation(); });
+            inp.addEventListener("input", function () {
+              it.haveNote = inp.value;
+              it.have = false;
+              queueNoteLog();
+              paint(); updateProgress(); queueSave();
+            });
+            step.querySelector(".step-done").addEventListener("click", function (e) {
+              e.stopPropagation();
+              closeStepper();
+            });
+          }
+        }
+
+        function openStepper() {
+          if (!step.classList.contains("open")) { buildStepper(); step.classList.add("open"); }
+        }
+        function closeStepper() { step.classList.remove("open"); flushNoteLog(); paint(); }
+
+        qty.addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (step.classList.contains("open")) closeStepper(); else openStepper();
+        });
+
+        row.addEventListener("click", function () {
+          it.have = !it.have;
+          logChange(it, it.have ? "checked" : "unchecked");
+          if (it.have) closeStepper();
+          paint();
+          updateProgress();
+          queueSave();
+        });
+
+        paint();
+        sec.appendChild(row);
+        sec.appendChild(step);
+        if (audit) sec.appendChild(audit);
+      });
+      list.appendChild(sec);
+    });
+    savebar.classList.add("visible");
+    updateProgress();
+  }
+
+  // Countable = whole-number quantity that isn't a weight/volume unit.
+  var MEASURE_UNITS = /^(oz|lb|lbs|cup|cups|tbsp|tsp|g|kg|ml|l|qt|qts|pint|pints|gal)\b/i;
+  function parseCount(qtyStr) {
+    var m = String(qtyStr || "").trim().match(/^(\d+)(?![\d.\/])\s*(.*)$/);
+    if (!m) return null;
+    var rest = m[2] || "";
+    if (MEASURE_UNITS.test(rest)) return null;
+    return { num: parseInt(m[1], 10), rest: rest };
+  }
+
+  function counts() {
+    var total = 0, have = 0, partial = 0;
+    state.items.forEach(function (g) {
+      g.items.forEach(function (it) {
+        total++;
+        if (it.have) have++;
+        else if ((it.haveQty && it.haveQty > 0) || (it.haveNote && it.haveNote.trim())) partial++;
+      });
+    });
+    return { total: total, have: have, partial: partial };
+  }
+
+  function updateProgress() {
+    var c = counts();
+    var fill = document.getElementById("fill");
+    var plabel = document.getElementById("plabel");
+    if (fill) fill.style.width = (c.total ? ((c.have + c.partial * 0.5) / c.total * 100) : 0) + "%";
+    if (plabel) plabel.textContent = c.have + " of " + c.total + " already have"
+      + (c.partial ? " \u00B7 " + c.partial + " partial" : "");
+  }
+
+  function queueSave() {
+    dirty = true;
+    savestatus.classList.remove("err");
+    savetxt.textContent = "Saving\u2026";
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 700);
+  }
+
+  function doSave() {
+    var body = new URLSearchParams();
+    body.set("key", key);
+    body.set("clientName", state.clientName);
+    body.set("serviceDay", state.serviceDay);
+    body.set("store", state.store || "");
+    body.set("organicPriority", state.organicPriority || "");
+    body.set("items", JSON.stringify(state.items));
+    fetch(SAVE_URL, { method: "POST", body: body })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); })
+      .then(function () {
+        dirty = false;
+        savestatus.classList.remove("err");
+        savetxt.textContent = "All changes saved";
+      })
+      .catch(function () {
+        savestatus.classList.add("err");
+        savetxt.textContent = "Couldn't save \u2014 retrying\u2026";
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(doSave, 3000);
+      });
+  }
+
+  // Periodic refresh so the chef sees client edits without reloading.
+  setInterval(function () {
+    if (dirty || !state) return;
+    fetch(GET_URL + "?key=" + encodeURIComponent(key))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (dirty || !data || !data.items) return;
+        var fresh = typeof data.items === "string" ? JSON.parse(data.items) : data.items;
+        var addedLocal = mergeLogs(fresh, state.items);
+        var metaChanged = (data.store || "") !== state.store || (data.organicPriority || "") !== state.organicPriority;
+        if (metaChanged || JSON.stringify(fresh) !== JSON.stringify(state.items)) {
+          state.items = fresh;
+          state.store = data.store || "";
+          state.organicPriority = data.organicPriority || "";
+          render();
+        }
+        // Entries only we held: push them back so the server copy keeps them.
+        if (addedLocal) queueSave();
+      })
+      .catch(function () {});
+  }, 30000);
+
+  load();
+</script>
+</body>
+</html>
