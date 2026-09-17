@@ -233,25 +233,6 @@
   .note-input:focus { outline: none; border-color: var(--sage); }
   .note-row { display: flex; gap: 10px; align-items: center; }
 
-  .audit {
-    padding: 2px 4px 11px 42px;
-    font-size: 12px;
-    line-height: 1.55;
-    color: #9a9384;
-  }
-  .audit div { font-variant-numeric: tabular-nums; }
-  .audit-banner {
-    margin: 16px 22px 0;
-    background: #efece2;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 8px 12px;
-    font-size: 12.5px;
-    font-weight: 700;
-    color: var(--muted);
-    text-align: center;
-  }
-
   .footer-note {
     margin: 30px 22px 0;
     font-size: 13px;
@@ -310,90 +291,74 @@
   var savetxt = document.getElementById("savetxt");
   var savestatus = document.getElementById("savestatus");
 
-  // --- Silent change log -------------------------------------------------
-  // Records who touched each item. Nothing here is shown to chefs or clients
-  // unless the private ?audit=1 view is requested.
-  var LOG_MAX = 20;
-  var ACTOR_STORE_KEY = "ebatx_actor";
-  var AUDIT = params.get("audit") === "1";
+  // --- Internal change log ------------------------------------------------
+  // Records who touched each item, for back-of-house use only. Entries are
+  // buffered here and POSTed one way to LOG_URL; they are never written into
+  // the list record, never returned by GET_URL and never rendered. Nothing on
+  // this page reads them back, so there is nothing here for a chef or client
+  // to switch on or read out of the network tab.
+  var LOG_URL = "https://hook.us2.make.com/lxdnkulsy36hu5jkx94bqp1gh5zgl9eo";
+  var LOG_FLUSH_MS = 5000;   // slower than the save debounce; nothing waits on it
+  var LOG_MAX = 300;         // bounds one session's payload
 
+  // Who is tapping: the ?by= slug the schedule link carries, remembered for
+  // later visits, else the client.
   var actor = (function () {
     var by = (params.get("by") || "").toLowerCase().trim();
     try {
-      if (by) localStorage.setItem(ACTOR_STORE_KEY, by);
-      else by = (localStorage.getItem(ACTOR_STORE_KEY) || "").toLowerCase().trim();
+      if (by) localStorage.setItem("ebatx_actor", by);
+      else by = (localStorage.getItem("ebatx_actor") || "").toLowerCase().trim();
     } catch (e) { /* private mode / storage disabled */ }
     return by || "client";
   })();
 
-  function logChange(it, action, detail) {
-    if (!it) return;
-    if (!Array.isArray(it.log)) it.log = [];
-    var entry = { by: actor, at: new Date().toISOString(), action: action };
-    if (detail !== undefined && detail !== null && detail !== "") entry.detail = detail;
-    it.log.push(entry);
-    if (it.log.length > LOG_MAX) it.log = it.log.slice(-LOG_MAX);
-  }
-
-  function logId(e) {
-    return String(e.at) + "|" + String(e.by) + "|" + String(e.action) + "|" +
-      (e.detail === undefined || e.detail === null ? "" : String(e.detail));
-  }
-
-  // Fold the log we already hold into a freshly fetched copy so a poll can
-  // never drop an entry. Only `log` is merged \u2014 have/haveQty/haveNote always
-  // come from the server copy, so a chef or client edit is never overwritten.
-  function mergeLogs(fresh, local) {
-    var addedLocal = false;
-    var byName = {};
-    (local || []).forEach(function (g) {
-      (g.items || []).forEach(function (it) { byName[g.cat + "\u0000" + it.name] = it; });
-    });
-    (fresh || []).forEach(function (g) {
-      (g.items || []).forEach(function (it) {
-        var prev = byName[g.cat + "\u0000" + it.name];
-        var mine = (prev && Array.isArray(prev.log)) ? prev.log : [];
-        var theirs = Array.isArray(it.log) ? it.log : [];
-        if (!mine.length && !theirs.length) return;
-        var seen = {}, out = [];
-        theirs.concat(mine).forEach(function (e) {
-          if (!e || !e.at) return;
-          var id = logId(e);
-          if (seen[id]) return;
-          seen[id] = 1;
-          out.push(e);
-        });
-        out.sort(function (a, b) { return a.at < b.at ? -1 : (a.at > b.at ? 1 : 0); });
-        if (out.length > LOG_MAX) out = out.slice(-LOG_MAX);
-        if (out.length !== theirs.length) addedLocal = true;
-        it.log = out;
-      });
-    });
-    return addedLocal;
-  }
-
-  var AUDIT_TIME = null;
-  function fmtAt(iso) {
-    var d = new Date(iso);
-    if (isNaN(d.getTime())) return String(iso == null ? "" : iso);
+  // One record per page session, so two people on the same list never
+  // overwrite each other and a re-send is just a superset of itself.
+  var logSession = (function () {
     try {
-      if (!AUDIT_TIME) AUDIT_TIME = new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit"
-      });
-      return AUDIT_TIME.format(d).replace(",", "");
-    } catch (e) { return d.toISOString(); }
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+    } catch (e) {}
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  })();
+  var logStarted = new Date().toISOString();
+
+  var logBuf = [];
+  var logTimer = null;
+
+  function logChange(cat, it, action, detail) {
+    if (!it) return;
+    var e = { at: new Date().toISOString(), cat: cat, item: it.name, action: action };
+    if (detail !== undefined && detail !== null && detail !== "") e.detail = detail;
+    logBuf.push(e);
+    if (logBuf.length > LOG_MAX) logBuf = logBuf.slice(-LOG_MAX);
+    clearTimeout(logTimer);
+    logTimer = setTimeout(sendLog, LOG_FLUSH_MS);
   }
 
-  // Note-log debouncers for the steppers currently on screen.
-  var noteFlushers = [];
-  function flushNoteLogs() {
-    noteFlushers.slice().forEach(function (f) { f(); });
+  function sendLog() {
+    clearTimeout(logTimer);
+    if (!logBuf.length || !key || !state) return;
+    var body = new URLSearchParams();
+    body.set("listKey", key);
+    body.set("clientName", state.clientName || "");
+    body.set("actor", actor);
+    body.set("session", logSession);
+    body.set("startedAt", logStarted);
+    body.set("entries", JSON.stringify(logBuf));
+    // Fire and forget. A failure here must never reach the page.
+    try { fetch(LOG_URL, { method: "POST", body: body, keepalive: true }).catch(function () {}); }
+    catch (e) {}
   }
-  window.addEventListener("pagehide", flushNoteLogs);
-  document.addEventListener("visibilitychange", function () {
-    if (document.hidden) flushNoteLogs();
-  });
-  // -----------------------------------------------------------------------
+
+  // Pending note text is turned into an entry before the buffer is flushed.
+  var noteFlushers = [];
+  function flushLog() {
+    noteFlushers.slice().forEach(function (f) { f(); });
+    sendLog();
+  }
+  window.addEventListener("pagehide", flushLog);
+  document.addEventListener("visibilitychange", function () { if (document.hidden) flushLog(); });
+  // ------------------------------------------------------------------------
 
   var CHECK = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -450,7 +415,6 @@
   function render() {
     meta.textContent = state.clientName + " \u00B7 Service day: " + state.serviceDay;
     var html = '';
-    if (AUDIT) html += '<div class="audit-banner">Audit view</div>';
     html += shopInfoHtml();
     html += '<div class="instruct">Tap anything you <b>already have</b> at home to check it off. Only have some of it? <b>Tap the quantity</b> to tell us how much. Your chef shops the rest. Changes save automatically.</div>';
     html += '<div class="progress-bar"><div class="progress-fill" id="fill"></div></div>';
@@ -480,17 +444,12 @@
         var step = document.createElement("div");
         step.className = "stepper";
 
-        var audit = null;
-        if (AUDIT) { audit = document.createElement("div"); audit.className = "audit"; }
-
         var noteLogTimer = null, noteLogPending = false;
         function flushNoteLog() {
           if (!noteLogPending) return;
           noteLogPending = false;
           clearTimeout(noteLogTimer); noteLogTimer = null;
-          logChange(it, "note", it.haveNote || "");
-          paintAudit();
-          queueSave();
+          logChange(group.cat, it, "note", it.haveNote || "");
         }
         function queueNoteLog() {
           noteLogPending = true;
@@ -498,18 +457,6 @@
           noteLogTimer = setTimeout(flushNoteLog, 900);
         }
         noteFlushers.push(flushNoteLog);
-
-        function paintAudit() {
-          if (!audit) return;
-          var log = Array.isArray(it.log) ? it.log : [];
-          if (!log.length) { audit.innerHTML = ''; return; }
-          audit.innerHTML = log.map(function (e) {
-            var bits = [e.by || "?", e.action || "?"];
-            if (e.detail !== undefined && e.detail !== null && e.detail !== "") bits.push(e.detail);
-            bits.push(fmtAt(e.at));
-            return '<div>' + esc(bits.join(" \u00B7 ")) + '</div>';
-          }).join("");
-        }
 
         function isPartial() {
           return !it.have && ((it.haveQty && it.haveQty > 0) || (it.haveNote && it.haveNote.trim()));
@@ -530,7 +477,6 @@
           } else {
             qty.textContent = it.qty;
           }
-          paintAudit();
         }
 
         function buildStepper() {
@@ -557,8 +503,8 @@
                 it.haveQty = n;
                 if (n >= c.num) { it.have = true; it.haveQty = 0; closeStepper(); }
                 else { it.have = false; }
-                if (changed) logChange(it, "qty", n);
-                if (!!it.have !== prevHave) logChange(it, it.have ? "checked" : "unchecked");
+                if (changed) logChange(group.cat, it, "qty", n);
+                if (!!it.have !== prevHave) logChange(group.cat, it, it.have ? "checked" : "unchecked");
                 sync();
                 queueSave();
               });
@@ -602,7 +548,7 @@
 
         row.addEventListener("click", function () {
           it.have = !it.have;
-          logChange(it, it.have ? "checked" : "unchecked");
+          logChange(group.cat, it, it.have ? "checked" : "unchecked");
           if (it.have) closeStepper();
           paint();
           updateProgress();
@@ -612,7 +558,6 @@
         paint();
         sec.appendChild(row);
         sec.appendChild(step);
-        if (audit) sec.appendChild(audit);
       });
       list.appendChild(sec);
     });
@@ -690,7 +635,6 @@
       .then(function (data) {
         if (dirty || !data || !data.items) return;
         var fresh = typeof data.items === "string" ? JSON.parse(data.items) : data.items;
-        var addedLocal = mergeLogs(fresh, state.items);
         var metaChanged = (data.store || "") !== state.store || (data.organicPriority || "") !== state.organicPriority;
         if (metaChanged || JSON.stringify(fresh) !== JSON.stringify(state.items)) {
           state.items = fresh;
@@ -698,8 +642,6 @@
           state.organicPriority = data.organicPriority || "";
           render();
         }
-        // Entries only we held: push them back so the server copy keeps them.
-        if (addedLocal) queueSave();
       })
       .catch(function () {});
   }, 30000);
