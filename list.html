@@ -298,7 +298,8 @@
   // this page reads them back, so there is nothing here for a chef or client
   // to switch on or read out of the network tab.
   var LOG_URL = "https://hook.us2.make.com/lxdnkulsy36hu5jkx94bqp1gh5zgl9eo";
-  var LOG_FLUSH_MS = 5000;   // slower than the save debounce; nothing waits on it
+  var LOG_FLUSH_MS = 60000;  // each flush re-sends the whole buffer, so the
+                             // in-between ones are only crash insurance
   var LOG_MAX = 300;         // bounds one session's payload
 
   // Who is tapping: the ?by= slug the schedule link carries, remembered for
@@ -628,8 +629,10 @@
   }
 
   // Periodic refresh so the chef sees client edits without reloading.
-  setInterval(function () {
-    if (dirty || !state) return;
+  // Skipped while the tab is hidden, and re-run the moment it comes back, so a
+  // list left open in the background costs nothing.
+  function refresh() {
+    if (dirty || !state || document.hidden) return;
     fetch(GET_URL + "?key=" + encodeURIComponent(key))
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -644,7 +647,11 @@
         }
       })
       .catch(function () {});
-  }, 30000);
+  }
+  setInterval(refresh, 60000);
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) refresh();
+  });
 
   load();
 </script>
