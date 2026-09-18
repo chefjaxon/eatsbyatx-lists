@@ -234,6 +234,17 @@
       '<button onclick="load()">Reload</button></div>';
   }
 
+  // Grocery-list links carry the chef's slug so the list can record who is
+  // tapping. Chef-less (picker) views fall through untouched.
+  function groceryLink(url){
+    var u = String(url == null ? "" : url);
+    if (!u) return u;
+    if (!chef) return u;
+    var hash = "", h = u.indexOf("#");
+    if (h !== -1){ hash = u.slice(h); u = u.slice(0, h); }
+    return u + (u.indexOf("?") === -1 ? "?" : "&") + "by=" + encodeURIComponent(chef) + hash;
+  }
+
   function render(records){
     var today = todayStr();
     var now = new Date();
@@ -304,7 +315,7 @@
           (r.notes ? '<div class="notes">' + esc(r.notes) + '</div>' : '') +
           '<div class="links">' +
           (r.groceryUrl
-            ? '<a href="' + esc(r.groceryUrl) + '">Grocery list</a>'
+            ? '<a href="' + esc(groceryLink(r.groceryUrl)) + '">Grocery list</a>'
             : '<span class="pending">Grocery list coming soon</span>') +
           (r.sheetUrl
             ? '<a class="sheet" href="' + esc(r.sheetUrl) + '">Production sheet</a>'
