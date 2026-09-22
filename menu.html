@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- build 2026-09-22.1 : per-client selection limits (CLIENT_RULES) + Breakfast/Lunch half-item labels -->
 <!-- build 2026-07-23.1 : weekly ratings now stage locally and save via single Submit button (history mini-stars unchanged) -->
 <html lang="en">
 <head>
@@ -192,6 +193,15 @@
   var state = null;   // { clientName, weekLabel, pickCount, status, menu: [{title, desc, selected, note}] }
   var dishHistory = [];   // parsed dish-history rows from Notion (NOTE: never name this "history" — window.history is read-only)
   var RATE_PROMPT_LIMIT = 8;
+
+  // Per-client selection limits. Keyed by the exact client name on the menu record.
+  // minFull = fewest full meals allowed, maxHalf = most half items allowed,
+  // maxDishes = most dishes on one cook (what fits the chef's session).
+  // Clients not listed here have no limits beyond the normal package count.
+  var CLIENT_RULES = {
+    "Adam Kilian": { minFull: 3, maxHalf: 4, maxDishes: 7 }
+  };
+  function rules() { return (state && CLIENT_RULES[state.clientName]) || null; }
 
   var content = document.getElementById("content");
   var ratezone = document.getElementById("ratezone");
@@ -745,10 +755,13 @@
   // Half-count items are named by their FORMAT (Snack / Side); the ½ is billing,
   // shown as a footnote so it can't be misread as a half-size portion.
   function halfChip(d) {
-    var kind = String((d && d.halfType) || "snack").trim().toLowerCase() === "side" ? "Side" : "Snack";
+    var ht = String((d && d.halfType) || "snack").trim().toLowerCase();
+    var kind = ht === "side" ? "Side" : ht === "breakfast" ? "Breakfast" : ht === "lunch" ? "Lunch" : "Snack";
     var hc = document.createElement("span");
     hc.className = "half-chip";
-    hc.innerHTML = "<b>" + kind + "</b> · counts as ½";
+    // Breakfast and lunch items (Adam Kilian's menus only) spell out the billing.
+    var tail = (kind === "Breakfast" || kind === "Lunch") ? "charged as a ½ meal" : "counts as ½";
+    hc.innerHTML = "<b>" + kind + "</b> · " + tail;
     return hc;
   }
 
@@ -760,6 +773,22 @@
   function selUnits() {
     var n = 0; state.menu.forEach(function (d) { if (d.selected) n += (d.half ? 0.5 : 1); });
     return n;
+  }
+
+  function selCounts() {
+    var full = 0, half = 0;
+    state.menu.forEach(function (d) { if (d.selected) { if (d.half) half++; else full++; } });
+    return { full: full, half: half, dishes: full + half };
+  }
+
+  // Returns a plain-language problem with the current picks, or "" if they fit the client's limits.
+  function ruleProblem() {
+    var r = rules(); if (!r) return "";
+    var c = selCounts();
+    if (r.maxHalf != null && c.half > r.maxHalf) return "You can pick up to " + r.maxHalf + " breakfast, lunch or snack items.";
+    if (r.maxDishes != null && c.dishes > r.maxDishes) return "That’s more dishes than fit in one cook. Please keep it to " + r.maxDishes + " total.";
+    if (r.minFull != null && c.full < r.minFull) return "Please pick at least " + r.minFull + " dinners.";
+    return "";
   }
 
   function fmtUnits(n) {
@@ -774,8 +803,10 @@
     } else {
       countEl.textContent = fmtUnits(n) + " selected";
     }
-    countEl.classList.toggle("ready", n > 0);
-    submitbtn.disabled = (n === 0);
+    var prob = ruleProblem();
+    if (prob && n > 0) { countEl.textContent += " · " + prob; }
+    countEl.classList.toggle("ready", n > 0 && !prob);
+    submitbtn.disabled = (n === 0) || !!prob;
   }
 
   function renderMenu() {
@@ -784,6 +815,8 @@
     var hasHalf = false;
     state.menu.forEach(function (d) { if (d.half) hasHalf = true; });
     var halfText = hasHalf ? " Snacks and sides are smaller dishes — they each count as half a meal toward your package." : "";
+    var r = rules();
+    if (r && hasHalf) { halfText = " Breakfasts, lunches and snacks each count as half a meal toward your package. Mix them however y’all like, with at least " + r.minFull + " dinners and up to " + r.maxHalf + " of the breakfast, lunch or snack items."; }
     var html = '';
     html += '<div class="instruct"><b>Pick your meals</b> by tapping the dishes you want.' + pkgText + halfText + ' Add a note under any dish if there’s something you’d like adjusted or a question for us. Then hit submit — that’s it.</div>';
     html += '<div id="dishes"></div>';
@@ -851,6 +884,8 @@
   }
 
   submitbtn.addEventListener("click", function () {
+    var prob = ruleProblem();
+    if (prob) { window.alert(prob); return; }
     var units = selUnits();
     if (state.pickCount > 0 && units < state.pickCount) {
       var ok = window.confirm("You’ve picked " + fmtUnits(units) + " so far, and your package includes " + state.pickCount + " meals. Submit anyway?");
