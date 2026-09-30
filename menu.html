@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <!-- build 2026-09-22.1 : per-client selection limits (CLIENT_RULES) + Breakfast/Lunch half-item labels -->
+<!-- build 2026-09-30.1 : taste-not-chef notice above weekly ratings -->
 <!-- build 2026-07-23.1 : weekly ratings now stage locally and save via single Submit button (history mini-stars unchanged) -->
 <html lang="en">
 <head>
@@ -74,6 +75,9 @@
 
   /* ---- Rate last week ---- */
   .rate-wrap { margin: 0 22px; }
+  .rate-note { margin: 10px 22px 0; padding: 11px 14px; border-left: 3px solid var(--sage-deep); background: var(--card); border-radius: 10px; }
+  .rate-note .n-t { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+  .rate-note .n-b { font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
   .rate-card {
     margin-top: 12px; background: #fbf7ee; border: 1.5px solid #e8dfc8;
     border-radius: 14px; padding: 14px 16px;
@@ -440,6 +444,14 @@
     head.className = "sect-head";
     head.innerHTML = '<span class="t">How were your meals?</span><span class="s">' + esc(latestWeek) + '</span>';
     ratezone.appendChild(head);
+
+    // Sets expectations: dish stars are taste feedback for menu curation,
+    // not a verdict on the chef. Chef/service feedback lives in the card below.
+    var note = document.createElement("div");
+    note.className = "rate-note";
+    note.innerHTML = '<div class="n-t">This is about your taste, not your chef</div>' +
+      '<div class="n-b">These stars just tell us which dishes y\'all loved and which ones to leave off, so we can curate your future menus around what you enjoy. Feedback on your chef or the service has its own spot at the bottom.</div>';
+    ratezone.appendChild(note);
 
     var wrapEl = document.createElement("div");
     wrapEl.className = "rate-wrap";
