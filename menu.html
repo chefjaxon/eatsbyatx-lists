@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <!-- build 2026-09-22.1 : per-client selection limits (CLIENT_RULES) + Breakfast/Lunch half-item labels -->
+<!-- build 2026-10-03.1 : rating prompt only shows the most recent week received, never falls back to an older week -->
 <!-- build 2026-09-30.1 : taste-not-chef notice above weekly ratings -->
 <!-- build 2026-07-23.1 : weekly ratings now stage locally and save via single Submit button (history mini-stars unchanged) -->
 <html lang="en">
@@ -282,26 +283,44 @@
     return rows;
   }
 
-  // Dishes eligible for the "rate last week" prompt: received (selected),
-  // unrated, and not from the week currently open on this page.
+  // The "rate last week" prompt only ever covers the most recent week the
+  // client actually received (selected dishes, excluding the week open on
+  // this page). It never falls back to an older week: if that week is fully
+  // rated, the prompt stays hidden. A dish repeated from an earlier week is
+  // still asked about, since each cook is its own result.
+  // Older unrated dishes are only counted, for the "Have it again" pointer.
+  function isCurrentWeek(row, currentWeekLabel) {
+    if (!currentWeekLabel || !row.weekLabel) return false;
+    return row.weekLabel.indexOf(currentWeekLabel) === 0 || currentWeekLabel.indexOf(row.weekLabel) === 0;
+  }
+
   function pickUnrated(rows, currentWeekLabel) {
-    var out = [], seen = {}, rated = {};
+    var latest = "";
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
-      if (r.title && r.rating > 0) rated[r.title.toLowerCase()] = true;
+      if (r.selected && r.title && !isCurrentWeek(r, currentWeekLabel)) { latest = r.weekLabel; break; }
     }
+    var result = { weekLabel: latest, batch: [], older: 0 };
+    if (!latest) return result;
+
+    var rated = {}, seen = {}, seenOld = {};
     for (var j = 0; j < rows.length; j++) {
-      var row = rows[j];
-      if (!row.selected || row.rating > 0 || !row.title) continue;
-      if (currentWeekLabel && row.weekLabel && row.weekLabel.indexOf(currentWeekLabel) === 0) continue;
-      if (currentWeekLabel && row.weekLabel && currentWeekLabel.indexOf(row.weekLabel) === 0) continue;
-      var k = row.title.toLowerCase();
-      if (seen[k] || rated[k]) continue; // one prompt per dish; skip if rated in any week
-      seen[k] = true;
-      out.push(row);
+      if (rows[j].title && rows[j].rating > 0) rated[rows[j].title.toLowerCase()] = true;
     }
-    // rows arrive sorted by Week desc from the webhook; keep that order
-    return out;
+    for (var k = 0; k < rows.length; k++) {
+      var row = rows[k];
+      if (!row.selected || !row.title || isCurrentWeek(row, currentWeekLabel)) continue;
+      var key = row.title.toLowerCase();
+      if (row.weekLabel === latest) {
+        if (row.rating > 0 || seen[key]) continue;
+        seen[key] = true;
+        result.batch.push(row);
+      } else if (row.rating <= 0 && !rated[key] && !seen[key] && !seenOld[key]) {
+        seenOld[key] = true;
+        result.older++;
+      }
+    }
+    return result;
   }
 
   // Past dishes for the "have it again" browser: received dishes only,
@@ -431,13 +450,12 @@
 
   function renderRatePrompt() {
     ratezone.innerHTML = "";
-    var unrated = pickUnrated(dishHistory, state ? state.weekLabel : "");
-    if (!unrated.length) return;
+    var picked = pickUnrated(dishHistory, state ? state.weekLabel : "");
+    if (!picked.batch.length) return;
 
-    var latestWeek = unrated[0].weekLabel;
-    var batch = [];
-    for (var i = 0; i < unrated.length; i++) if (unrated[i].weekLabel === latestWeek) batch.push(unrated[i]);
-    var rest = unrated.length - batch.length;
+    var latestWeek = picked.weekLabel;
+    var batch = picked.batch;
+    var rest = picked.older;
     if (batch.length > RATE_PROMPT_LIMIT) batch = batch.slice(0, RATE_PROMPT_LIMIT);
 
     var head = document.createElement("div");
